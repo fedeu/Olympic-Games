@@ -4,7 +4,7 @@ import json
 import csv
 
 dbName = "ProvaDB"
-clientUrl = "mongodb+srv://fede:caccapupu@cluster0.d3idv.mongodb.net/myFirstDatabase?retryWrites=true&w=majority"
+clientUrl = "mongodb+srv://"
 client = MongoClient(clientUrl)
 db = client[dbName]
 
