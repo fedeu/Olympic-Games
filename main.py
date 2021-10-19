@@ -3,12 +3,9 @@ from pymongo import MongoClient
 import json
 import csv
 
-dbName = "ProvaDB"
-clientUrl = "mongodb+srv://fede:caccapupu@cluster0.d3idv.mongodb.net/myFirstDatabase?retryWrites=true&w=majority"
-client = MongoClient(clientUrl)
-db = client[dbName]
 
 def popolaDB(csvPath, collectionName):
+    print("Popopolando " + collectionName)
     coll = db[collectionName]
     data = pd.read_csv(csvPath)
     payload = json.loads(data.to_json(orient='records'))
@@ -17,13 +14,11 @@ def popolaDB(csvPath, collectionName):
     print(coll.count())
 
 
-if __name__ == "__main__":
-
+def inizializzaDB():
     # GESTIONE CSV per le collection ATLETA, EVENTO, MEDAGLIA
     rootPath = "C:/Users/feder/Documents/Università/Magistrale/Basi di dati 2/progetto/dataset/"
     dataAE = pd.read_csv(rootPath + "athlete_events.csv")
 
-    # da saltare quando hai già tolto Games
     dataAE.drop("Games", inplace=True, axis=1)  # Cancella la colonna 'Games'
     dataAE.to_csv(rootPath + "athlete_events1.csv", index=False)
 
@@ -41,7 +36,7 @@ if __name__ == "__main__":
                 continue
             else:
                 eventX = row[0]
-                if ',' in eventX: # Alcune specialità trascrivono i numeri in 1,000 anziché 1000: ciò crea problemi per pandas col csv, perciò rimuove le virgole
+                if ',' in eventX:  # Alcune specialità trascrivono i numeri in 1,000 anziché 1000: ciò crea problemi per pandas col csv, perciò rimuove le virgole
                     eventX = eventX.replace(',', '')
                 diz[eventX + "," + row[1] + "," + row[2] + "," + row[3]] = "EV" + str(
                     index)  # il dizionario assicura l'unicità di ciascun evento
@@ -53,13 +48,13 @@ if __name__ == "__main__":
         itemOfLines.append(idevent)
         eventLines.append(itemOfLines)
 
-    # da saltare quando hai già ricavato il file event
     with open(rootPath + "event_info.csv", 'w', newline="") as writefile:  # Trascrive nel csv i dati ottenuti da Evento
         writer = csv.writer(writefile)
         writer.writerows(eventLines)
 
     # INSERIMENTO ID-EVENTO IN ATHLETE.CSV
-    medalLines = [['Medal', 'Sport', 'IDEvent', 'IDAthlete']]  # Label delle colonne
+    medalLines = [['Medal', 'Sport', 'IDEvent', 'IDAthlete',
+                   'AthleteAge']]  # Label delle colonne -- DEVO SALVARE ANCHE L'ETà DELL'ATLETA
     with open(rootPath + "athlete_events1.csv", "r") as readfile:
         reader = csv.reader(readfile)
         for row in reader:
@@ -70,7 +65,7 @@ if __name__ == "__main__":
             if ',' in eventX:
                 eventX = eventX.replace(',', '')
             keyForDictEvent = "" + eventX + "," + (row[8]) + "," + (row[10]) + "," + row[9]
-            medalLines.append([row[13], row[11], diz[keyForDictEvent], row[0]])
+            medalLines.append([row[13], row[11], diz[keyForDictEvent], row[0], row[3]])
 
     # CREAZIONE CSV MEDAGLIA
     with open(rootPath + "medal_info1.csv", "w", newline="") as writefile:
@@ -82,25 +77,66 @@ if __name__ == "__main__":
     for attribute in attributesToDrop:
         dfAthlete.drop(attribute, inplace=True, axis=1)
 
-    dfAthlete = dfAthlete.drop_duplicates() # elimina le occorrenze ripetute di atleta, dovute inizialmente alla competizione per più medaglie
+    dfAthlete = dfAthlete.drop_duplicates()  # elimina le occorrenze ripetute di atleta, dovute inizialmente alla competizione per più medaglie
     dfAthlete.to_csv(rootPath + "athlete_info.csv", index=False)
 
     # CARICAMENTO SU MONGODB - da saltare quando hai già caricato tutto
     popolaDB(rootPath + "athlete_info.csv", "athlete")
     popolaDB(rootPath + "event_info.csv", "event")
     popolaDB(rootPath + "medal_info1.csv", "achievement")
-    
-    #AGGIUNTA INDICE ID AD ATLETA
-    resp = db.athlete.create_index([("ID", 1)])
+
+    # AGGIUNTA INDICE ID AD ATLETA
+    resp = db.athlete.create_index([("Team", 1), ("ID", 1)])
     print("index response:", resp)
 
-    # EMBED MEDAL in EVENT sotto forma di array - PRIMA DI FARE QUESTA COSA CONVIENE AGGIUNGERE GLI INDICI!!!
-    allMedals = db.medal.find({}, {"_id": 0})
-    db.athlete.update_many({}, {"$set": {"Medals": []}}) #da saltare se già fatto
+    # Incorpora ACHIEVEMENT in EVENT sotto forma di array
+    allMedals = db.achievement.find({}, {"_id": 0})
+    db.athlete.update_many({}, {"$set": {"Achievements": []}})
     for medal in allMedals:
-        db.athlete.update_one({"ID": medal["IDAthlete"]}, {"$push": {"Medals": {i: medal[i] for i in medal if i != "IDAthlete"}}})
+        db.athlete.update_one({"ID": medal["IDAthlete"], "Age": medal["AthleteAge"]},
+                              {"$push": {
+                                  "Achievements": {i: medal[i] for i in medal if i != "IDAthlete" and i != "AthleteAge"}}})
 
-    print(db.athlete.find_one({'ID': 5}))
+    # DROP ACHIEVEMENT COLLECTION
+    db.achievement.drop()
 
-    # DROP MEDAL COLLECTION
-    db.medal.drop()
+
+if __name__ == "__main__":
+    dbName = "OlympicGames"
+    clientUrl = "***"
+    client = MongoClient(clientUrl)
+    db = client[dbName]
+    if dbName not in client.list_database_names():  # Se non trova il db, lo crea e carica il dataset
+        inizializzaDB()
+    else:
+        #db.athlete.create_index([("ID", 1)])
+        # Incorpora ACHIEVEMENT in EVENT sotto forma di array
+        session = client.start_session()
+
+        allMedals = db.achievement.find({}, {"_id": 0}, no_cursor_timeout=True, batch_size=1).sort('ID', 1)
+        db.athlete.update_many({}, {"$set": {"Achievements": []}})
+        prova = 0
+        
+        for medal in allMedals:       
+            db.athlete.update_one({"ID": medal["IDAthlete"], "Age": medal["AthleteAge"]},
+                                  {"$push": {
+                                      "Achievements": {i: medal[i] for i in medal if
+                                                 i != "IDAthlete" and i != "AthleteAge"}}})
+            prova += 1
+            if prova == 1000:
+                print("100 fatto")
+                db.command({"refreshSession": session.session_id})
+                prova = 0
+        allMedals.close()
+        # DROP ACHIEVEMENT COLLECTION
+        #db.achievement.drop()
+
+
+
+"""    #--- LA MIA QUERY: Elabora un grafico a torta degli sport in cui una data nazione va meglio
+    nazione = "China"
+    athletes = db.athlete.find({'Team': nazione})
+    for athlete in athletes:
+        if athlete['Medal']
+
+"""
