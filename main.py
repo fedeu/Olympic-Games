@@ -15,7 +15,7 @@ def popolaDB(csvPath, collectionName):
 
 
 def inizializzaDB():
-    # GESTIONE CSV per le collection ATLETA, EVENTO, MEDAGLIA
+    # GESTIONE CSV per le collection ATHLETE, EVENT, ACHIEVEMENT
     rootPath = "C:/Users/feder/Documents/Università/Magistrale/Basi di dati 2/progetto/dataset/"
     dataAE = pd.read_csv(rootPath + "athlete_events.csv")
 
@@ -77,66 +77,122 @@ def inizializzaDB():
     for attribute in attributesToDrop:
         dfAthlete.drop(attribute, inplace=True, axis=1)
 
-    dfAthlete = dfAthlete.drop_duplicates()  # elimina le occorrenze ripetute di atleta, dovute inizialmente alla competizione per più medaglie
+    dfAthlete = dfAthlete.drop_duplicates()  # elimina le occorrenze ripetute di atleta, dovute alla competizione per più medaglie
     dfAthlete.to_csv(rootPath + "athlete_info.csv", index=False)
 
-    # CARICAMENTO SU MONGODB - da saltare quando hai già caricato tutto
+    # CARICAMENTO SU MONGODB
     popolaDB(rootPath + "athlete_info.csv", "athlete")
     popolaDB(rootPath + "event_info.csv", "event")
     popolaDB(rootPath + "medal_info1.csv", "achievement")
 
-    # AGGIUNTA INDICE ID AD ATLETA
-    resp = db.athlete.create_index([("Team", 1), ("ID", 1)])
-    print("index response:", resp)
+    creaIndici()
 
     # Incorpora ACHIEVEMENT in EVENT sotto forma di array
-    allMedals = db.achievement.find({}, {"_id": 0})
-    db.athlete.update_many({}, {"$set": {"Achievements": []}})
-    for medal in allMedals:
-        db.athlete.update_one({"ID": medal["IDAthlete"], "Age": medal["AthleteAge"]},
-                              {"$push": {
-                                  "Achievements": {i: medal[i] for i in medal if i != "IDAthlete" and i != "AthleteAge"}}})
+    db.athlete.update_many({}, {"$set": {"Achievements": []}}) # Aggiungi l'attributo Achievements ad Athletes
+    firstHalfOfAchievements = db.achievement.find({"IDAthlete": {"$lte": 60000}}, {"_id": 0}).sort("IDAthlete", 1)
+    secondHalfOfAchievements = db.achievement.find({"IDAthlete": {"$gt": 60000, "$lte": 120000}}, {"_id": 0}).sort(
+        "IDAthlete", 1)
+    thirdHalfOfAchievements = db.achievement.find({"IDAthlete": {"$gt": 120000}}, {"_id": 0}).sort("IDAthlete", 1)
+    insertAchievement(firstHalfOfAchievements)
+    print("inserito first")
+    insertAchievement(secondHalfOfAchievements)
+    print("inserito second")
+    insertAchievement(thirdHalfOfAchievements)
+    print("inserito third")
 
     # DROP ACHIEVEMENT COLLECTION
     db.achievement.drop()
 
 
+def insertAchievement(achievements):
+    for a in achievements:
+        db.athlete.update_one({"ID": a["IDAthlete"], "Age": a["AthleteAge"]},
+                              {"$push": {
+                                  "Achievements": {i: a[i] for i in a if
+                                                   i != "IDAthlete" and i != "AthleteAge"}}})
+
+def creaIndici():
+    #Indici per Athlete
+    db.athlete.create_index([("ID", 1)])
+    db.athlete.create_index([("Team", 1)])
+    db.athlete.create_index([("Age", 1)])
+    db.athlete.create_index([("Sex", 1)])
+    db.athlete.create_index([("Name", 1)])
+    db.athlete.create_index([("Height", 1)])
+    db.athlete.create_index([("Weight", 1)])
+    db.athlete.create_index([("NOC", 1)])
+
+    #Indici per Achievement
+    db.achievement.create_index([("IDAthlete", 1)])
+    db.achievement.create_index([("IDEvent", 1)])
+    db.achievement.create_index([("Sport", 1)])
+    db.achievement.create_index([("Medal", 1)])
+    db.achievement.create_index([("AthleteAge", 1)])
+
+    #Indici per Event
+    db.event.create_index([("EventName", 1)])
+    db.event.create_index([("Year", 1)])
+    db.event.create_index([("City", 1)])
+    db.event.create_index([("Season", 1)])
+    db.event.create_index([("IDEvent", 1)])
+
+
+def query2():
+    # --- QUERY 2: Visualizza altezza, peso ed età degli atleti che hanno vinto una medaglia per una data disciplina;
+    sport = input("Inserire lo sport:")
+    queryResult = db.athlete.find({"Achievements.Sport": sport, "Achievements.Medal": {"$ne": None}}, {"_id": 0})
+    if queryResult is not None:
+        print("---Name---Age---Height---Weight---")
+        for r in queryResult:
+            if not list(r['Achievements']):  # se la lista delle medaglie è vuota, salta l'atleta dal conteggio
+                continue
+            else:
+                print(r["Name"] + " " + str(int(r["Age"])) + " " + str(r["Height"]) + " " + str(r["Weight"]))
+
+
+def query6():
+    # --- QUERY 6: Elabora un grafico a torta degli sport in cui una data nazione va meglio
+    nazione = "China"
+    resultMap = {}
+    queryResult = db.athlete.find({'Team': nazione, 'Achievements.Medal': {
+        '$ne': None}})  # Trova tutti gli atleti di una specifica nazione e che hanno vinto una medaglia
+    for a in queryResult:
+        print(a)
+        if a['Achievements.Sport'] not in resultMap.keys():  # Aggiunge un nuovo sport
+            resultMap[a['Achievements.Sport']] = 1
+        else:
+            resultMap[a['Achievements.Sport']] += 1  # Incrementa il conteggio delle medaglie per un dato sport
+    for value, key in resultMap.items():
+        print("Sport: " + key + ", Count of medals: " + value)
+
+
+def query7():
+    # --- QUERY 7: Mostra il totale delle medaglie attinenti a un dato evento per ogni nazione
+    nomeEvento = "Basketball Men's Basketball"
+    annoEvento = 1992
+    cittàEvento = "Barcelona"
+    idEvent = db.event.find({"EventName": nomeEvento, "Year": annoEvento, "City": cittàEvento},
+                            {"IDEvent": 1, "_id": 0})  # Trova l'id dell'evento
+    print(idEvent)
+    queryResult = db.athlete.find({"Achievements.IDEvent": idEvent, "Achievements.Medal": {"$ne": None}}, {
+        "Team": 1})  # Trova tutti gli atleti che hanno vinto una medaglia in quell'evento
+    resultMap = {}
+    for r in queryResult:
+        if not r['Achievements.Medal']:  # se la lista delle medaglie è vuota, salta l'atleta dal conteggio
+            continue
+        if r['Team'] not in resultMap.keys():
+            r['Team'] = 1
+        else:
+            r['Team'] += 1
+    for value, key in resultMap.items():
+        print("Team: " + key + ", Count of medals: " + value)
+
+
 if __name__ == "__main__":
     dbName = "OlympicGames"
-    clientUrl = "***"
+    clientUrl = ""
     client = MongoClient(clientUrl)
     db = client[dbName]
     if dbName not in client.list_database_names():  # Se non trova il db, lo crea e carica il dataset
         inizializzaDB()
-    else:
-        #db.athlete.create_index([("ID", 1)])
-        # Incorpora ACHIEVEMENT in EVENT sotto forma di array
-        session = client.start_session()
 
-        allMedals = db.achievement.find({}, {"_id": 0}, no_cursor_timeout=True, batch_size=1).sort('ID', 1)
-        db.athlete.update_many({}, {"$set": {"Achievements": []}})
-        prova = 0
-        
-        for medal in allMedals:       
-            db.athlete.update_one({"ID": medal["IDAthlete"], "Age": medal["AthleteAge"]},
-                                  {"$push": {
-                                      "Achievements": {i: medal[i] for i in medal if
-                                                 i != "IDAthlete" and i != "AthleteAge"}}})
-            prova += 1
-            if prova == 1000:
-                print("100 fatto")
-                db.command({"refreshSession": session.session_id})
-                prova = 0
-        allMedals.close()
-        # DROP ACHIEVEMENT COLLECTION
-        #db.achievement.drop()
-
-
-
-"""    #--- LA MIA QUERY: Elabora un grafico a torta degli sport in cui una data nazione va meglio
-    nazione = "China"
-    athletes = db.athlete.find({'Team': nazione})
-    for athlete in athletes:
-        if athlete['Medal']
-
-"""
