@@ -168,24 +168,39 @@ def query6():
 
 def query7():
     # --- QUERY 7: Mostra il totale delle medaglie attinenti a un dato evento per ogni nazione
-    nomeEvento = "Basketball Men's Basketball"
+    nomeEvento = "Cross Country Skiing Men's 10 kilometres"
     annoEvento = 1992
-    cittàEvento = "Barcelona"
-    idEvent = db.event.find({"EventName": nomeEvento, "Year": annoEvento, "City": cittàEvento},
-                            {"IDEvent": 1, "_id": 0})  # Trova l'id dell'evento
-    print(idEvent)
-    queryResult = db.athlete.find({"Achievements.IDEvent": idEvent, "Achievements.Medal": {"$ne": None}}, {
-        "Team": 1})  # Trova tutti gli atleti che hanno vinto una medaglia in quell'evento
-    resultMap = {}
-    for r in queryResult:
-        if not r['Achievements.Medal']:  # se la lista delle medaglie è vuota, salta l'atleta dal conteggio
-            continue
-        if r['Team'] not in resultMap.keys():
-            r['Team'] = 1
-        else:
-            r['Team'] += 1
-    for value, key in resultMap.items():
-        print("Team: " + key + ", Count of medals: " + value)
+    cittàEvento = "Albertville"
+
+    result = db.event.aggregate([
+        {"$match": {
+            "EventName": nomeEvento,
+            "Year": annoEvento,
+            "City": cittàEvento
+        }},
+        {"$lookup": {
+            "from": "athlete",
+            "localField": "IDEvent",
+            "foreignField": "Achievements.IDEvent",
+            "as": "medaglie"
+        }}
+    ])
+
+    map = {} #per contenere Nazione - NumMedaglie
+    for r in result:
+        for item in r["medaglie"]:
+            print(item)
+            if item["Achievements"][0]["Medal"] is not None:
+                team = item["Team"]
+                if team not in map.keys():
+                    map[team] = 1
+                else:
+                    map[team] += 1
+
+        print("\n-----------\n")
+
+    for key, val in map.items():
+        print("Team: "+key+" ,"+"Count: "+str(val))
 
 
 if __name__ == "__main__":
@@ -196,3 +211,4 @@ if __name__ == "__main__":
     if dbName not in client.list_database_names():  # Se non trova il db, lo crea e carica il dataset
         inizializzaDB()
 
+    query7()
