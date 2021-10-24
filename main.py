@@ -301,7 +301,7 @@ def query9():  # Riporta gli atleti che hanno vinto almeno tot medaglie
 
 if __name__ == "__main__":
     dbName = "OlympicGames"
-    clientUrl = "mongodb+srv://fede:progBdFUeLDP@cluster0.d3idv.mongodb.net/myFirstDatabase?retryWrites=true&w=majority"
+    clientUrl = ""
     client = MongoClient(clientUrl)
     db = client[dbName]
     if dbName not in client.list_database_names():  # Se non trova il db, lo crea e carica il dataset
