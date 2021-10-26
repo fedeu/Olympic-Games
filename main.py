@@ -103,8 +103,8 @@ def inizializzaDB():
     insertAchievement(thirdHalfOfAchievements)
     print("inserito third")
 
-    # DROP ACHIEVEMENT COLLECTION
     db.achievement.drop()
+    creaIndiciAchievements()
 
 
 def insertAchievement(achievements):
@@ -141,7 +141,14 @@ def creaIndici():
     db.event.create_index([("IDEvent", 1)])
 
 
-def query2(): # Visualizza altezza, peso ed età degli atleti che hanno vinto una medaglia per una data disciplina;
+def creaIndiciAchievements():
+    # Indici per Achievement embedded in Athlete
+    db.athlete.create_index([("Achievements.Medal", 1)])
+    db.athlete.create_index([("Achievements.Sport", 1)])
+    db.athlete.create_index([("Achievements.IDEvent", 1)])
+
+
+def query2(): # -- Visualizza altezza, peso ed età degli atleti che hanno vinto una medaglia per una data disciplina;
     sport = input("Inserire lo sport:")
     queryResult = db.athlete.find({"Achievements.Sport": sport, "Achievements.Medal": {"$ne": None}}, {"_id": 0})
     if queryResult is not None:
@@ -153,7 +160,7 @@ def query2(): # Visualizza altezza, peso ed età degli atleti che hanno vinto un
                 print(r["Name"] + " " + str(int(r["Age"])) + " " + str(r["Height"]) + " " + str(r["Weight"]))
 
 
-def query4():  # Calcola quante medaglie sono state vinte da una data nazione nelle 2 diverse stagioni per uno specifico anno
+def query4():  # -- Calcola quante medaglie sono state vinte da una data nazione nelle 2 diverse stagioni per uno specifico anno
     team = "Italy"
     year = 1936
     summerMedals = 0
@@ -179,7 +186,7 @@ def query4():  # Calcola quante medaglie sono state vinte da una data nazione ne
     print("Summer: " + str(summerMedals) + ", Winter: " + str(winterMedals))
 
 
-def query6():  # Elabora un grafico a torta degli sport in cui una data nazione va meglio
+def query6():  # -- Elabora un grafico a torta degli sport in cui una data nazione va meglio
     nazione = "Italy"
     resultMap = {}
     queryResult = db.athlete.find({'Team': nazione, 'Achievements.Medal': {
@@ -197,18 +204,10 @@ def query6():  # Elabora un grafico a torta degli sport in cui una data nazione 
     # GRAFICO A TORTA
     sports = list(resultMap.keys())[:10]
     medals = list(resultMap.values())[:10]
-    """fig = plt.figure(figsize=(10, 7))
-    plt.pie(medals, labels=sports)
-    
-    plt.show()"""
 
-    # Creating color parameters
-    colors = ("orange", "cyan", "yellow",
-              "brown", "indigo", "beige", "green")
+    colors = ("orange", "cyan", "yellow", "brown", "indigo", "beige", "green") # Color parameters
     explode = (0.1, 0.1, 0.2, 0.3, 0.2, 0.2, 0.1, 0.1, 0.1, 0.0)
-
-    # Wedge properties
-    wp = {'linewidth': 1, 'edgecolor': "black"}
+    wp = {'linewidth': 1, 'edgecolor': "black"} # Wedge properties
 
     # Creating autocpt arguments
     def func(pct, allvalues):
@@ -235,11 +234,10 @@ def query6():  # Elabora un grafico a torta degli sport in cui una data nazione 
     plt.setp(autotexts, size=6)
     ax.set_title(nazione)
 
-    # show plot
     plt.show()
 
 
-def query7(): # Mostra il totale delle medaglie attinenti a un dato evento per ogni nazione
+def query7(): # -- Mostra il totale delle medaglie attinenti a un dato evento per ogni nazione
     nomeEvento = "Cross Country Skiing Men's 10 kilometres"
     annoEvento = 1992
     cittàEvento = "Albertville"
@@ -273,10 +271,11 @@ def query7(): # Mostra il totale delle medaglie attinenti a un dato evento per o
         print("Team: " + key + " ," + "Count: " + str(val))
 
 
-def query8(): #Riporta per ogni anno il numero di partecipazioni di atlete di sesso femminile
+def query9(): # -- Riporta per ogni anno il numero di partecipazioni di atleti di uno specifico sesso
+    sex = "M"
     queryResult = db.athlete.aggregate([
         {"$match": {
-            "Sex": "F"
+            "Sex": sex
         }},
         {"$lookup": {
             "from": "event",
@@ -286,13 +285,19 @@ def query8(): #Riporta per ogni anno il numero di partecipazioni di atlete di se
         }}
     ])
 
-    queryResult = sorted(queryResult, key=lambda x: x['participation'][0]['Year'], reverse=False) #non funziona senza un limit alla aggregate!
-
+    yearMap = {}
     for result in queryResult:
-        print(result)
+        for event in result["participation"]:
+            if event["Year"] not in yearMap.keys():
+                yearMap[event["Year"]] = 1
+            else:
+                yearMap[event["Year"]] += 1
+
+    for key in sorted(yearMap):
+        print("%s: %s" % (key, yearMap[key]))
 
 
-def query9():  # Riporta gli atleti che hanno vinto almeno tot medaglie
+def query10():  # Riporta gli atleti che hanno vinto almeno tot medaglie
     med = 3
     queryResult = db.athlete.find({"Achievements": {"$size": med}, "Achievements.Medal": {"$ne": None}})
     for r in queryResult:
@@ -301,7 +306,7 @@ def query9():  # Riporta gli atleti che hanno vinto almeno tot medaglie
 
 if __name__ == "__main__":
     dbName = "OlympicGames"
-    clientUrl = "mongodb+srv://fede:progBdFUeLDP@cluster0.d3idv.mongodb.net/myFirstDatabase?retryWrites=true&w=majority"
+    clientUrl = ""
     client = MongoClient(clientUrl)
     db = client[dbName]
     if dbName not in client.list_database_names():  # Se non trova il db, lo crea e carica il dataset
