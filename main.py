@@ -35,21 +35,28 @@ class Window(Tk):
 
         # Create labels and entries for input area - città, sport, team, evento, anno1, quantità (RIGA 1). anno, anno2 (riga2)
         self.labelsAndEntries = {}
+        self.radioVar = IntVar()
         self.createLabelsAndEntries()
         self.subtmitbtn = Button(self, text="Esegui", command=self.callQuery)
 
     def checkInput(self, key):
+        if key is None:
+            key = "Sesso"
+        print(key)
         entry = self.labelsAndEntries[key][1]
         if key == "Anno" or key == "Anno1" or key == "Anno2" or key == "Quantità":
             try:
                 input = int(entry.get())
             except:
                 print("bucchì")
-
         elif key == "Sesso":
-            input = entry.get()
+            input = self.radioVar.get()
             print(input)
-        #else:
+        else:
+            input = entry.get()
+            special_characters = "\"!@#$%^&*()-+?_=,<>/\""
+            if any(c in special_characters for c in input):
+                print("bucchì")
 
     def callQuery(self):
         val = int(self.selected_query.get())
@@ -94,9 +101,10 @@ class Window(Tk):
         entryAnno = Entry(self.inputFrame)
         entryAnno2 = Entry(self.inputFrame)
 
-        radiobtnM = Radiobutton(self.inputFrame, text="M", variable=IntVar(),
-                                value=0)  # Se variable = 0, il sesso scelto è M. Altrimenti F.
-        radiobtnF = Radiobutton(self.inputFrame, text="F", variable=IntVar(), value=1)
+
+        radiobtnM = Radiobutton(self.inputFrame, text="M", variable=self.radioVar,
+                                value=0, command=self.checkInput)  # Se variable = 0, il sesso scelto è M. Altrimenti F.
+        radiobtnF = Radiobutton(self.inputFrame, text="F", variable=self.radioVar, value=1, command=self.checkInput)
 
         self.labelsAndEntries = {"Città": [labelCity, entryCity], "Sport": [labelSport, entrySport],
                                  "Team": [labelTeam, entryTeam], "Evento": [labelEvent, entryEvent],
