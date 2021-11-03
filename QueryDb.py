@@ -46,8 +46,8 @@ def query6():  # -- Elabora un grafico a torta degli sport in cui una data nazio
     resultMap = {}
     queryResult = db.athlete.find({'Team': nazione, 'Achievements.Medal': {
         '$ne': None}})  # Trova tutti gli atleti di una specifica nazione e che hanno vinto una medaglia
-    for a in queryResult:
-        for achievement in a["Achievements"]:
+    for athlete in queryResult:
+        for achievement in athlete["Achievements"]:
             if achievement['Sport'] not in resultMap.keys():  # Aggiunge un nuovo sport
                 resultMap[achievement['Sport']] = 1
             else:
@@ -114,7 +114,6 @@ def query7(): # -- Mostra il totale delle medaglie attinenti a un dato evento pe
     diz = {}  # per contenere Nazione - NumMedaglie
     for r in result:
         for item in r["participation"]:
-            print(item)
             if item["Achievements"][0]["Medal"] is not None:
                 team = item["Team"]
                 if team not in diz.keys():
