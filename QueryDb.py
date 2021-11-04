@@ -3,9 +3,8 @@ import numpy as np
 from load_db import db
 
 
-def query2(): # -- Visualizza altezza, peso ed età degli atleti che hanno vinto una medaglia per una data disciplina;
-    sport = input("Inserire lo sport:")
-    queryResult = db.athlete.find({"Achievements.Sport": sport, "Achievements.Medal": {"$ne": None}}, {"_id": 0})
+def query2(sport): # -- Visualizza altezza, peso ed età degli atleti che hanno vinto una medaglia per una data disciplina;
+    queryResult = db.athlete.find({"Achievements.Sport": sport, "Achievements.Medal": {"$ne": None}, "Height": {"$ne": None}, "Weight": {"$ne": None}}, {"_id": 0})
     if queryResult is not None:
         print("---Name---Age---Height---Weight---")
         for r in queryResult:
@@ -96,12 +95,14 @@ def query7(): # -- Mostra il totale delle medaglie attinenti a un dato evento pe
     nomeEvento = "Cross Country Skiing Men's 10 kilometres"
     annoEvento = 1992
     cittàEvento = "Albertville"
+    stagioneEvento = "Winter"
 
     result = db.event.aggregate([
         {"$match": {
             "EventName": nomeEvento,
             "Year": annoEvento,
-            "City": cittàEvento
+            "City": cittàEvento,
+            "Season": stagioneEvento
         }},
         {"$lookup": {
             "from": "athlete",
