@@ -3,6 +3,15 @@ import numpy as np
 from load_db import db
 
 
+def query1(city):
+    # --- QUERY 1: Preso in input una città, mostrare gli eventi che ha ospistato
+
+    queryResult = db.event.find({"City": city}, {"_id": 0, "IDEvent":0})
+
+    for doc in queryResult:
+        print(doc)
+
+
 def query2(sport): # -- Visualizza altezza, peso ed età degli atleti che hanno vinto una medaglia per una data disciplina;
     queryResult = db.athlete.find({"Achievements.Sport": sport, "Achievements.Medal": {"$ne": None}, "Height": {"$ne": None}, "Weight": {"$ne": None}}, {"_id": 0})
     if queryResult is not None:
@@ -12,6 +21,38 @@ def query2(sport): # -- Visualizza altezza, peso ed età degli atleti che hanno 
                 continue
             else:
                 print(r["Name"] + " " + str(int(r["Age"])) + " " + str(r["Height"]) + " " + str(r["Weight"]))
+
+
+def query3(team,year):
+    # Mostra le medaglie vinte da un team (nazione) in un dato anno;
+
+    #team = "China"#input("Inserisci il team: ")
+    #year = 1992 #int(input("Anno: "))
+
+    result = db.event.aggregate([
+        {"$match": {
+                "Year": year
+        }},
+
+        {"$lookup": {
+            "from": "athlete",
+            "localField": "IDEvent",
+            "foreignField": "Achievements.IDEvent",
+            "as": "lista"
+
+        }}
+    ])
+    lista2 = []
+    for r in result:
+        for item in r["lista"]:
+            if item["Team"] == team:
+                for medal in item["Achievements"]:
+                    if medal["Medal"] is not None:
+                        lista2.append(item)
+
+
+    for i in lista2:
+        print(i)
 
 
 def query4():  # -- Calcola quante medaglie sono state vinte da una data nazione nelle 2 diverse stagioni per uno specifico anno
@@ -38,6 +79,42 @@ def query4():  # -- Calcola quante medaglie sono state vinte da una data nazione
     for queryRes in queries:
         winterMedals += queryRes.countDocuments()
     print("Summer: " + str(summerMedals) + ", Winter: " + str(winterMedals))
+
+
+def query5(nomeEvento, annoEvento, cittàEvento, season ):
+    #Mostra tutte le medaglie vinte in un dato evento e gli atleti che le hanno vinte;
+    #print("Informazioni evento")
+    #nomeEvento = "Judo Men's Extra-Lightweight" #input("Nome: ")
+    #annoEvento = 2012  #int(input("Anno: "))
+    #cittàEvento = "London" #input("Città: ")
+    #season = "Summer" #input("Season :")
+
+    result = db.event.aggregate([
+        {"$match": {
+                "EventName": nomeEvento,
+                "Year": annoEvento,
+                "City": cittàEvento,
+                "Season": season
+        }},
+        {"$lookup": {
+            "from": "athlete",
+            "localField": "IDEvent",
+            "foreignField": "Achievements.IDEvent",
+            "as": "lista"
+
+        }},{"$limit": 5}
+    ])
+
+    lista2 = []
+
+    for r in result:
+        for item in r["lista"]:
+            for medal in item["Achievements"]:
+                if medal["Medal"] is not None:
+                    lista2.append(item)
+
+    for i in lista2:
+        print(i)
 
 
 def query6():  # -- Elabora un grafico a torta degli sport in cui una data nazione va meglio
@@ -126,8 +203,102 @@ def query7(): # -- Mostra il totale delle medaglie attinenti a un dato evento pe
         print("Team: " + key + " ," + "Count: " + str(val))
 
 
-def query9(): # -- Riporta per ogni anno il numero di partecipazioni di atleti di uno specifico sesso
-    sex = "M"
+def query8(annoInf, annoSup, tipoGrafico):
+    #Elabora un istogramma delle 5 nazioni che negli ultimi tot anni hanno vinto più medaglie;
+
+    """totAnni = int(input("Inseriigli gli ultimo anni: "))
+    tipoGrafico = input("Inserici secondo quale tipo vuoi generare il grafico Gold,Silver,Bronz or total: ")
+    annoSup = int(ultimoAnno())
+    print("Anno sup: ",annoSup)
+    annoInf = annoSup - totAnni
+    print("Anno inf: ", annoInf)"""
+
+    result = db.event.aggregate([
+        {"$match": {
+                        "Year": {"$gte": annoInf, "$lte": annoSup}
+                        #"Year": {"$lte": annoSup}
+        }},
+        {"$lookup": {
+            "from": "athlete",
+            "localField": "IDEvent",
+            "foreignField": "Achievements.IDEvent",
+            "as": "lista"
+
+        }}
+    ])
+
+    resultMap = {}
+
+    for r in result:
+        for item in r["lista"]:
+            if item["Team"] not in resultMap.keys():
+                lisMedal = [0, 0, 0, 0]
+                resultMap[item["Team"]] = lisMedal
+
+                for medal in item["Achievements"]:
+                    if medal["Medal"] is not None:
+                        resultMap[item["Team"]][3] += 1
+                        #print("1. Anno ", item["Year"])
+                        if medal["Medal"] == "Gold":
+                            resultMap[item["Team"]][0] += 1
+                        elif medal["Medal"] == "Silver":
+                            resultMap[item["Team"]][1] += 1
+                        elif medal["Medal"] == "Bronze":
+                            resultMap[item["Team"]][2] += 1
+            else:
+                for medal in item["Achievements"]:
+                    if medal["Medal"] is not None:
+                        resultMap[item["Team"]][3] += 1
+                        #print("Anno ", item["Year"])
+                        if medal["Medal"] == "Gold":
+                            resultMap[item["Team"]][0] += 1
+                        elif medal["Medal"] == "Silver":
+                            resultMap[item["Team"]][1] += 1
+
+                        elif medal["Medal"] == "Bronze":
+                            resultMap[item["Team"]][2] += 1
+
+
+    y = 4
+
+    if tipoGrafico == "Gold":
+        y = 0
+        z = "d'oro"
+    elif tipoGrafico == "Silver":
+        y = 1
+        z = "d'argento"
+    elif tipoGrafico == "Bronze":
+        z = "di bronzo"
+        y = 2
+    elif tipoGrafico == "Total":
+        z = "totali"
+        y = 3
+    if y == 4:
+        print("il valore inserito non è corretto")
+    else:
+        for key, value in resultMap.items():
+            if value[0] == 0:
+                mapOrder = sorted(resultMap.items(), key=lambda x: x[1][y], reverse=True)
+        medaglie = []
+        nazioni = []
+        i = 0
+        for key, value in mapOrder:
+            if i < 6:
+                medaglie.append(value[y])
+                nazioni.append(key)
+                i += 1
+        #GENERO L'ISTOGRAMMA
+        plt.style.use('ggplot')
+        plt.title("Nazioni che hanno vinto più medaglie "+z+" dal " + str(annoInf) + " al " + str(annoSup))
+        plt.bar(range(len(medaglie)), medaglie, align='center', edgecolor="black")
+        plt.xlabel('Nazioni')
+        plt.ylabel('# Medaglie vinte')
+        plt.xticks(range(len(nazioni)), nazioni)
+        plt.show()
+
+
+def query9(sex): # -- Riporta per ogni anno il numero di partecipazioni di atleti di uno specifico sesso
+    #sex = "M"
     queryResult = db.athlete.aggregate([
         {"$match": {
             "Sex": sex
@@ -137,8 +308,7 @@ def query9(): # -- Riporta per ogni anno il numero di partecipazioni di atleti d
             "localField": "Achievements.IDEvent",
             "foreignField": "IDEvent",
             "as": "participation"
-        }},
-        {"$limit": 50}
+        }}
     ])
 
     yearMap = {}
@@ -158,3 +328,10 @@ def query10():  # Riporta gli atleti che hanno vinto almeno tot medaglie
     queryResult = db.athlete.find({"Achievements": {"$size": med}, "Achievements.Medal": {"$ne": None}})
     for r in queryResult:
         print(r)
+
+
+def ultimoAnno():
+    result = db.event.find({}, {"Year": 1, "_id": 0}).sort("Year", -1).limit(1)
+    for r in result:
+        return int(r["Year"])
+
