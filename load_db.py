@@ -4,7 +4,7 @@ import csv
 from pymongo import MongoClient
 
 dbName = "OlympicGames"
-clientUrl = "mongodb+srv://fede:progBdFUeLDP@cluster0.d3idv.mongodb.net/myFirstDatabase?retryWrites=true&w=majority"
+clientUrl = "*"
 client = MongoClient(clientUrl)
 db = client[dbName]
 
