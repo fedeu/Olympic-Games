@@ -1,7 +1,6 @@
 from tkinter import *
 from tkinter.ttk import *
 from QueryDb import *
-import tksheet
 
 # RISOLVI QUERY 4
 # AGGIUNGI QUERY DI INSERIMENTO/CANC/MOD
@@ -26,30 +25,21 @@ class Window(Tk):
 
     def __init__(self):
         super().__init__()
+        self.configure(background='#FFEFD5')
+        self.geometry('750x500')
+        self.title('Olympic History')
+
         # style for widgets
         styleError = Style()
         styleError.configure("BW.TLabel", foreground="red")
 
-        self.configure(background='#FFEFD5')
-        self.geometry('750x500')
-        """self.grid_columnconfigure(0, weight=1)
-        self.grid_rowconfigure(0, weight=1)"""
-        self.title('Olympic History')
-
-        # Menubutton variable
+        # Menubutton
         self.selected_query = IntVar()
         self.selected_query.trace("w", self.menu_item_selected)
-
-        # create the menu button
         self.create_menu_button()
 
         self.inputFrame = Frame(self, width=200, height=200, relief=GROOVE, borderwidth=1)
-        """self.inputFrame.grid_columnconfigure(0, weight=1)
-        self.inputFrame.grid_rowconfigure(0, weight=1)"""
-        self.inputFrame.grid(row=1, column=1, padx=10, pady=10)
-
         self.outputFrame = Frame(self, width=400, height=500, relief=GROOVE, borderwidth=1)
-        #self.outputFrame.grid(row=2, column=1, padx=10, pady=10)
 
         # Create widgets and variables for input area
         self.labelsAndEntries = {}
@@ -59,6 +49,11 @@ class Window(Tk):
         self.labelError = Label(self, text="", style="BW.TLabel")
         self.labelError.grid(row=3, column=1, padx=1, pady=4)
         self.subtmitbtn = Button(self, text="Esegui", command=self.callQuery)
+
+        # Create widgets and variables for output area
+        self.tree = Treeview(self.outputFrame)
+        self.treeMedal = Treeview(self.outputFrame)
+        self.labelNotFound = Label(self.outputFrame, text="")
 
     def checkInput(self, key):
         """Checks if input is in the correct format"""
@@ -94,16 +89,17 @@ class Window(Tk):
     def callQuery(self):
         self.labelError.config(text="")
         val = int(self.selected_query.get())
+        res = None
         if val == 0:
             città = self.checkInput("Città")
             if città is not None:
-                query1(città)
+                res = query1(città)
             else:
                 self.labelError.config(text="Inserisci una città valida")
         elif val == 1:
             sport = self.checkInput("Sport")
             if sport is not None:
-                query2(sport)
+                res = query2(sport)
             else:
                 self.labelError.config(text="Inserisci uno sport valido")
         elif val == 2 or val == 3:
@@ -117,9 +113,9 @@ class Window(Tk):
                 self.labelError.config(text="Inserisci un anno valido")
 
             if val == 2:
-                query3(team, anno)
+                res = query3(team, anno)
             else:
-                query4(team, anno)
+                res = query4(team, anno)
         elif val == 4 or val == 6:
             evento = self.checkInput("Evento")
             anno = self.checkInput("Anno")
@@ -135,15 +131,15 @@ class Window(Tk):
                 self.labelError.config(text="Inserisci una stagione valida")
             elif evento is not None and anno is not None and città is not None and season is not None:
                 if val == 4:
-                    query5(evento, anno, città, season)
+                    res = query5(evento, anno, città, season)
                 else:
-                    query7(evento, anno, città, season)
+                    res = query7(evento, anno, città, season)
         elif val == 5:
             team = self.checkInput("Team")
             if team is None:
                 self.labelError.config(text="Inserisci un team valido")
             else:
-                query6(team)
+                res = query6(team)
         elif val == 7:
             anno1 = self.checkInput("Anno1")
             anno2 = self.checkInput("Anno2")
@@ -154,16 +150,18 @@ class Window(Tk):
             elif anno2 is None:
                 self.labelError.config(text="Inserisci un anno valido come secondo parametro")
             else:
-                query8(anno1, anno2, medaglia)
+                res = query8(anno1, anno2, medaglia)
         elif val == 8:
             sesso = self.checkInput("Sesso")
-            query9(sesso)
+            res = query9(sesso)
         elif val == 9:
             quant = self.checkInput("Quantità")
             if quant is None:
                 self.labelError.config(text="Inserisci una quantità valida")
             else:
-                query10()
+                res = query10()
+        self.showResults(res)
+
 
     def createLabelsAndEntries(self):
         labelCity = Label(self.inputFrame, text="Città")
@@ -247,6 +245,7 @@ class Window(Tk):
             riga = 2
         label.grid(row=riga, column=0, padx=2, pady=2)
         entry.grid(row=riga, column=1, padx=2, pady=2)
+        entry.focus_set()
         self.subtmitbtn.grid(row=2, column=1, pady=5)
 
     def hideFields(self):
@@ -261,9 +260,14 @@ class Window(Tk):
             item[0].grid_remove()
             item[1].grid_remove()
         self.labelError.config(text="")
+        #self.labelNotFound.config(text="")
+        self.labelNotFound.grid_remove()
+        self.tree.grid_remove()
+        self.treeMedal.grid_remove()
 
     def menu_item_selected(self, *args):
         """ handle menu selected event """
+        self.inputFrame.grid(row=1, column=1, padx=10, pady=10)
         val = int(self.selected_query.get())
         self.hideFields()
         if val == 0:
@@ -307,18 +311,60 @@ class Window(Tk):
         elif val == 18:
             self.showFields("")
 
+    def showResults(self, results):
+        self.outputFrame.grid(row=4, column=1, padx=10, pady=10)
+        """elif results.count() == 0:
+            self.labelNotFound.config(text="Nessun risultato trovato")
+            self.labelNotFound.grid(row=0, column=0)"""
+        if type(results) == list and len(results) == 0:
+            self.labelNotFound.config(text="Nessun risultato trovato")
+            self.labelNotFound.grid(row=0, column=0)
+        else:
+            cols = list(results[0].keys())   # get names of the attributes
+            del cols[8]
+            del cols[7]
+            del cols[0]
+            cols = tuple(cols)
+
+            self.tree.config(col=cols, show="headings")
+            for col in cols:
+                if col != "Achievements":
+                    self.tree.heading(col, text=col)
+                    self.tree.column(col, minwidth=0, width=200)
+
+            medals = []
+            for result in results:
+                for medal in result["Achievements"]:
+                    medal["IDAthlete"] = result["ID"]
+                    medals.append(medal)
+                myValues = []
+                for col in cols:
+                    if col != "Achievements":
+                        myValues.append(result[col])
+
+                self.tree.insert("", "end", values=tuple(myValues))
+            self.tree.grid(row=1, column=0, columnspan=3)
+
+            cols = tuple(medals[0].keys())
+            self.treeMedal.config(col=cols, show="headings")
+            for col in cols:
+                self.treeMedal.heading(col, text=col)
+
+            for medal in medals:
+                for col in cols:
+                    self.treeMedal.insert("", "end", values=tuple(medal[col]))
+            self.treeMedal.grid(row=2, column=1)
+
+
     def create_menu_button(self):
         """ create a menu button for query selecting"""
-        numbers = [x for x in range(0, 19)]
-
-        # create the Menubutton
         menu_button = Menubutton(
             self,
             text='Seleziona una query', width=100)
 
-        # create a new menu instance
         menu = Menu(menu_button, tearoff=False)
 
+        numbers = [x for x in range(0, 19)]  # indexes for queries
         for number in numbers:
             menu.add_radiobutton(
                 label=str(number + 1) + ". " + queries[number],
@@ -327,8 +373,6 @@ class Window(Tk):
 
         # associate menu with the Menubutton
         menu_button["menu"] = menu
-        menu_button.grid_columnconfigure(0, weight=1)
-        menu_button.grid_rowconfigure(0, weight=1)
         menu_button.grid(row=0, column=1, padx=10, pady=10)
 
 

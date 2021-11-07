@@ -4,42 +4,33 @@ from load_db import db
 
 
 def query1(city):
-    # --- QUERY 1: Preso in input una città, mostrare gli eventi che ha ospistato
-
-    queryResult = db.event.find({"City": city}, {"_id": 0, "IDEvent":0})
-
-    for doc in queryResult:
-        print(doc)
+    # --- QUERY 1: Presa in input una città, mostrare gli eventi che ha ospitato
+    queryResult = db.event.find({"City": city}, {"_id": 0, "IDEvent": 0, "City": 0})
+    return queryResult
 
 
 def query2(sport): # -- Visualizza altezza, peso ed età degli atleti che hanno vinto una medaglia per una data disciplina;
     queryResult = db.athlete.find({"Achievements.Sport": sport, "Achievements.Medal": {"$ne": None}, "Height": {"$ne": None}, "Weight": {"$ne": None}}, {"_id": 0})
     if queryResult is not None:
-        print("---Name---Age---Height---Weight---")
+        """print("---Name---Age---Height---Weight---")
         for r in queryResult:
             if not list(r['Achievements']):  # se la lista delle medaglie è vuota, salta l'atleta dal conteggio
                 continue
             else:
-                print(r["Name"] + " " + str(int(r["Age"])) + " " + str(r["Height"]) + " " + str(r["Weight"]))
+                print(r["Name"] + " " + str(int(r["Age"])) + " " + str(r["Height"]) + " " + str(r["Weight"]))"""
+        return queryResult
 
 
-def query3(team,year):
-    # Mostra le medaglie vinte da un team (nazione) in un dato anno;
-
-    #team = "China"#input("Inserisci il team: ")
-    #year = 1992 #int(input("Anno: "))
-
+def query3(team, year): # -- Mostra le medaglie vinte da un team (nazione) in un dato anno;
     result = db.event.aggregate([
         {"$match": {
                 "Year": year
         }},
-
         {"$lookup": {
             "from": "athlete",
             "localField": "IDEvent",
             "foreignField": "Achievements.IDEvent",
             "as": "lista"
-
         }}
     ])
     lista2 = []
@@ -48,11 +39,10 @@ def query3(team,year):
             if item["Team"] == team:
                 for medal in item["Achievements"]:
                     if medal["Medal"] is not None:
+                        # AGGIUNGERE CONTROLLO QUI PER RIMUOVERE MEDAGLIE NONE DA ITEM
                         lista2.append(item)
 
-
-    for i in lista2:
-        print(i)
+    return lista2
 
 
 def query4():  # -- Calcola quante medaglie sono state vinte da una data nazione nelle 2 diverse stagioni per uno specifico anno
@@ -81,8 +71,7 @@ def query4():  # -- Calcola quante medaglie sono state vinte da una data nazione
     print("Summer: " + str(summerMedals) + ", Winter: " + str(winterMedals))
 
 
-def query5(nomeEvento, annoEvento, cittàEvento, season ):
-    #Mostra tutte le medaglie vinte in un dato evento e gli atleti che le hanno vinte;
+def query5(nomeEvento, annoEvento, cittàEvento, season): # -- Mostra tutte le medaglie vinte in un dato evento e gli atleti che le hanno vinte;
     #print("Informazioni evento")
     #nomeEvento = "Judo Men's Extra-Lightweight" #input("Nome: ")
     #annoEvento = 2012  #int(input("Anno: "))
@@ -102,11 +91,11 @@ def query5(nomeEvento, annoEvento, cittàEvento, season ):
             "foreignField": "Achievements.IDEvent",
             "as": "lista"
 
-        }},{"$limit": 5}
+        }},
+        {"$limit": 5}
     ])
 
     lista2 = []
-
     for r in result:
         for item in r["lista"]:
             for medal in item["Achievements"]:
@@ -257,7 +246,6 @@ def query8(annoInf, annoSup, tipoGrafico):
 
                         elif medal["Medal"] == "Bronze":
                             resultMap[item["Team"]][2] += 1
-
 
     y = 4
 
