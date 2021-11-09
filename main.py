@@ -2,7 +2,6 @@ from tkinter import *
 from tkinter.ttk import *
 from QueryDb import *
 
-# RISOLVI QUERY 4
 # AGGIUNGI QUERY DI INSERIMENTO/CANC/MOD
 # FONT VARI
 
@@ -26,7 +25,7 @@ class Window(Tk):
     def __init__(self):
         super().__init__()
         self.configure(background='#FFEFD5')
-        self.geometry('750x500')
+        self.geometry('1250x750')
         self.title('Olympic History')
 
         # style for widgets
@@ -74,12 +73,12 @@ class Window(Tk):
             inputField = self.radioMedal.get()
         else:  # check on strings
             inputField = entry.get()
-            special_characters = "\"!@#$%^&*()-+?_=,<>/\""
+            special_characters = "\"!@#$%^&*()+?_=<>/\""
             if any(c in special_characters for c in inputField):# check on special characters
                 inputField = None
             elif all(c in " " for c in inputField): # check on string full of blank spaces
                 inputField = None
-            if inputField is not None and (key == "Città" or key == "Team" or key == "Evento"):  # check on numbers
+            if inputField is not None and (key == "Città" or key == "Team"):  # check on numbers
                 numbers = "0123456789"
                 if any(c in numbers for c in inputField):
                     inputField = None
@@ -93,13 +92,13 @@ class Window(Tk):
         if val == 0:
             città = self.checkInput("Città")
             if città is not None:
-                res = query1(città)
+                res, numQuery = query1(città)
             else:
                 self.labelError.config(text="Inserisci una città valida")
         elif val == 1:
             sport = self.checkInput("Sport")
             if sport is not None:
-                res = query2(sport)
+                res, numQuery = query2(sport)
             else:
                 self.labelError.config(text="Inserisci uno sport valido")
         elif val == 2 or val == 3:
@@ -113,9 +112,9 @@ class Window(Tk):
                 self.labelError.config(text="Inserisci un anno valido")
 
             if val == 2:
-                res = query3(team, anno)
+                res, numQuery = query3(team, anno)
             else:
-                res = query4(team, anno)
+                res, numQuery = query4(team, anno)
         elif val == 4 or val == 6:
             evento = self.checkInput("Evento")
             anno = self.checkInput("Anno")
@@ -129,17 +128,17 @@ class Window(Tk):
                 self.labelError.config(text="Inserisci una città valida")
             elif season is None:
                 self.labelError.config(text="Inserisci una stagione valida")
-            elif evento is not None and anno is not None and città is not None and season is not None:
+            else:
                 if val == 4:
-                    res = query5(evento, anno, città, season)
+                    res, numQuery = query5(evento, anno, città, season)
                 else:
-                    res = query7(evento, anno, città, season)
+                    res, numQuery = query7(evento, anno, città, season)
         elif val == 5:
             team = self.checkInput("Team")
             if team is None:
                 self.labelError.config(text="Inserisci un team valido")
             else:
-                res = query6(team)
+                res, numQuery = query6(team)
         elif val == 7:
             anno1 = self.checkInput("Anno1")
             anno2 = self.checkInput("Anno2")
@@ -159,8 +158,9 @@ class Window(Tk):
             if quant is None:
                 self.labelError.config(text="Inserisci una quantità valida")
             else:
-                res = query10()
-        self.showResults(res)
+                res, numQuery = query10()
+
+        self.showResults(res, numQuery)
 
 
     def createLabelsAndEntries(self):
@@ -259,7 +259,8 @@ class Window(Tk):
                 item[2].grid_remove()
             item[0].grid_remove()
             item[1].grid_remove()
-        self.labelError.config(text="")
+        #self.labelError.config(text="")
+        self.labelError.grid_remove()
         #self.labelNotFound.config(text="")
         self.labelNotFound.grid_remove()
         self.tree.grid_remove()
@@ -311,49 +312,82 @@ class Window(Tk):
         elif val == 18:
             self.showFields("")
 
-    def showResults(self, results):
-        self.outputFrame.grid(row=4, column=1, padx=10, pady=10)
+
+    def showNoResultLabel(self):
+        self.labelNotFound.config(text="Nessun risultato trovato")
+        self.labelNotFound.grid(row=0, column=0)
+
+
+    def showResults(self, results, numQuery):
+        """Arrange widgets in the output area"""
+        self.outputFrame.grid(row=4, columnspan=2, padx=10, pady=10)
         """elif results.count() == 0:
-            self.labelNotFound.config(text="Nessun risultato trovato")
-            self.labelNotFound.grid(row=0, column=0)"""
-        if type(results) == list and len(results) == 0:
-            self.labelNotFound.config(text="Nessun risultato trovato")
-            self.labelNotFound.grid(row=0, column=0)
+                    self.showNoResultLabel()"""
+        # Check on length of results: if not 0 display table
+        if type(results) is list and len(results) == 0:
+            self.showNoResultLabel()
         else:
-            cols = list(results[0].keys())   # get names of the attributes
-            del cols[8]
-            del cols[7]
-            del cols[0]
+            # Setting columns for the result table
+            if numQuery == 4:
+                cols = ("Summer", "Winter")
+            elif numQuery == 7:
+                cols = ("Team", "Medal counter")
+            else:
+                cols = list(results[0].keys())   # get names of the attributes
+
+            if numQuery == 3 or numQuery == 5:
+                del cols[8]
+                del cols[7]
+                del cols[0]
+                medals = []
             cols = tuple(cols)
 
             self.tree.config(col=cols, show="headings")
             for col in cols:
-                if col != "Achievements":
+                if col != "Achievements" or (col == "Achievements" and numQuery == 2):
                     self.tree.heading(col, text=col)
-                    self.tree.column(col, minwidth=0, width=200)
+                    if col == "Sex" or col == "Height" or col == "Weight" or col == "NOC" or col == "Age":
+                        self.tree.column(col, minwidth=0, width=50)
+                    elif col == "Achievements":
+                        self.tree.column(col, minwidth=50, width=300)
+                    else:
+                        self.tree.column(col, minwidth=0, width=150)
 
-            medals = []
-            for result in results:
-                for medal in result["Achievements"]:
-                    medal["IDAthlete"] = result["ID"]
-                    medals.append(medal)
-                myValues = []
+            # Setting the treeview to display results
+            if numQuery == 4:
+                self.tree.insert("", "end", values=(results[0], results[1]))
+            elif numQuery == 7:
+                for key, value in results.items():
+                    self.tree.insert("", "end", values=(key, value))
+            else:
+                for result in results:
+                    if numQuery == 3 or numQuery == 5:
+                        for medal in result["Achievements"]:
+                            medal["IDAthlete"] = result["ID"]
+                            medals.append(medal)
+                    myValues = []
+                    for col in cols:
+                        if col != "Achievements":
+                            myValues.append(result[col])
+                        elif col == "Achievements" and numQuery == 2:
+                            for medal in result["Achievements"]: # Format medals
+                                myValues.append("<"+medal["Medal"]+", "+medal["Sport"]+">")
+                    self.tree.insert("", "end", values=tuple(myValues))
+
+            self.tree.grid(row=1, columnspan=3)
+
+            if numQuery == 3 or numQuery == 5: # Create second table to display medals in detail
+                cols = tuple(list(medals[0].keys()))
+                self.treeMedal.config(col=cols, show="headings")
                 for col in cols:
-                    if col != "Achievements":
-                        myValues.append(result[col])
+                    self.treeMedal.heading(col, text=col)
 
-                self.tree.insert("", "end", values=tuple(myValues))
-            self.tree.grid(row=1, column=0, columnspan=3)
-
-            cols = tuple(medals[0].keys())
-            self.treeMedal.config(col=cols, show="headings")
-            for col in cols:
-                self.treeMedal.heading(col, text=col)
-
-            for medal in medals:
-                for col in cols:
-                    self.treeMedal.insert("", "end", values=tuple(medal[col]))
-            self.treeMedal.grid(row=2, column=1)
+                for medal in medals:
+                    myValues = []
+                    for col in cols:
+                        myValues.append(medal[col])
+                    self.treeMedal.insert("", "end", values=tuple(myValues))
+                self.treeMedal.grid(row=2, column=0)
 
 
     def create_menu_button(self):
@@ -373,7 +407,7 @@ class Window(Tk):
 
         # associate menu with the Menubutton
         menu_button["menu"] = menu
-        menu_button.grid(row=0, column=1, padx=10, pady=10)
+        menu_button.grid(row=0, column=0, padx=10, pady=10)
 
 
 if __name__ == "__main__":
