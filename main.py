@@ -45,8 +45,7 @@ class Window(Tk):
         self.radioVar = StringVar()
         self.radioMedal = StringVar()
         self.createLabelsAndEntries()
-        self.labelError = Label(self, text="", style="BW.TLabel")
-        self.labelError.grid(row=3, column=1, padx=1, pady=4)
+        self.labelError = Label(self, text="", style="BW.TLabel") # prima era nel self
         self.subtmitbtn = Button(self, text="Esegui", command=self.callQuery)
 
         # Create widgets and variables for output area
@@ -55,7 +54,7 @@ class Window(Tk):
         self.labelNotFound = Label(self.outputFrame, text="")
 
     def checkInput(self, key):
-        """Checks if input is in the correct format"""
+        """Checks if input is in the correct format. Returns None if not"""
         entry = self.labelsAndEntries[key][1]
 
         if key == "Anno" or key == "Anno1" or key == "Anno2" or key == "Quantità":  # check on integers
@@ -71,6 +70,10 @@ class Window(Tk):
             inputField = self.radioVar.get()
         elif key == "Medaglia":
             inputField = self.radioMedal.get()
+        elif key == "Stagione":
+            inputField = entry.get()
+            if inputField != "Winter" or inputField != "Summer":
+                inputField = None
         else:  # check on strings
             inputField = entry.get()
             special_characters = "\"!@#$%^&*()+?_=<>/\""
@@ -86,30 +89,32 @@ class Window(Tk):
 
 
     def callQuery(self):
-        self.labelError.config(text="")
+        errorText = ""
+        #self.labelError.config(text="")
         val = int(self.selected_query.get())
         res = None
+        numQuery = 0
         if val == 0:
-            città = self.checkInput("Città")
-            if città is not None:
-                res, numQuery = query1(città)
+            citta = self.checkInput("Città")
+            if citta is not None:
+                res, numQuery = query1(citta)
             else:
-                self.labelError.config(text="Inserisci una città valida")
+                errorText = "Inserisci una città valida"
         elif val == 1:
             sport = self.checkInput("Sport")
             if sport is not None:
                 res, numQuery = query2(sport)
             else:
-                self.labelError.config(text="Inserisci uno sport valido")
+                errorText ="Inserisci uno sport valido"
         elif val == 2 or val == 3:
             team = self.checkInput("Team")
             anno = self.checkInput("Anno")
             if anno is None and team is None:
-                self.labelError.config(text="Inserisci dei parametri validi")
+                errorText = "Inserisci dei parametri validi"
             elif team is None:
-                self.labelError.config(text="Inserisci un team valido")
+                errorText = "Inserisci un team valido"
             elif anno is None:
-                self.labelError.config(text="Inserisci un anno valido")
+                errorText = "Inserisci un anno valido"
 
             if val == 2:
                 res, numQuery = query3(team, anno)
@@ -118,25 +123,25 @@ class Window(Tk):
         elif val == 4 or val == 6:
             evento = self.checkInput("Evento")
             anno = self.checkInput("Anno")
-            città = self.checkInput("Città")
+            citta = self.checkInput("Città")
             season = self.checkInput("Stagione")
             if evento is None:
-                self.labelError.config(text="Inserisci un evento valido")
+                errorText = "Inserisci un evento valido"
             elif anno is None:
-                self.labelError.config(text="Inserisci un anno valido")
-            elif città is None:
-                self.labelError.config(text="Inserisci una città valida")
+                errorText = "Inserisci un anno valido"
+            elif citta is None:
+                errorText = "Inserisci una città valida"
             elif season is None:
-                self.labelError.config(text="Inserisci una stagione valida")
+                errorText = "Inserisci una stagione valida: Winter o Summer"
             else:
                 if val == 4:
-                    res, numQuery = query5(evento, anno, città, season)
+                    res, numQuery = query5(evento, anno, citta, season)
                 else:
-                    res, numQuery = query7(evento, anno, città, season)
+                    res, numQuery = query7(evento, anno, citta, season)
         elif val == 5:
             team = self.checkInput("Team")
             if team is None:
-                self.labelError.config(text="Inserisci un team valido")
+                errorText = "Inserisci un team valido"
             else:
                 res, numQuery = query6(team)
         elif val == 7:
@@ -145,9 +150,9 @@ class Window(Tk):
             medaglia = self.checkInput("Medaglia")
 
             if anno1 is None:
-                self.labelError.config(text="Inserisci un anno valido come primo parametro")
+                errorText = "Inserisci un anno valido come primo parametro"
             elif anno2 is None:
-                self.labelError.config(text="Inserisci un anno valido come secondo parametro")
+                errorText = "Inserisci un anno valido come secondo parametro"
             else:
                 res = query8(anno1, anno2, medaglia)
         elif val == 8:
@@ -156,42 +161,64 @@ class Window(Tk):
         elif val == 9:
             quant = self.checkInput("Quantità")
             if quant is None:
-                self.labelError.config(text="Inserisci una quantità valida")
+                errorText = "Inserisci una quantità valida"
             else:
                 res, numQuery = query10()
-
-        self.showResults(res, numQuery)
+        if errorText != "":
+            self.labelError.config(text=errorText)
+            self.labelError.grid(row=3, column=1, padx=1, pady=4)
+        else:
+            self.showResults(res, numQuery)
 
 
     def createLabelsAndEntries(self):
-        labelCity = Label(self.inputFrame, text="Città")
-        labelSport = Label(self.inputFrame, text="Sport")
+        # ATHLETE
+        labelID = Label(self.inputFrame, text="ID")
+        labelAthleteName = Label(self.inputFrame, text="Nome")
+        labelAge = Label(self.inputFrame, text="Età")
+        labelHeight = Label(self.inputFrame, text="Altezza")
+        labelWeight = Label(self.inputFrame, text="Peso")
+        labelNoc = Label(self.inputFrame, text="NOC")
         labelTeam = Label(self.inputFrame, text="Team")
+        labelSex = Label(self.inputFrame, text="Sesso")
+
+        entryID = Entry(self.inputFrame)
+        entryAthleteName = Entry(self.inputFrame)
+        entryAge = Entry(self.inputFrame)
+        entryHeight = Entry(self.inputFrame)
+        entryWeight = Entry(self.inputFrame)
+        entryNoc = Entry(self.inputFrame)
+        entryTeam = Entry(self.inputFrame)
+
+        # EVENT
+        labelCity = Label(self.inputFrame, text="Città")
         labelEvent = Label(self.inputFrame, text="Evento")
+        labelAnno = Label(self.inputFrame, text="Anno")
+        labelSeason = Label(self.inputFrame, text="Stagione")
+        labelIDEvent = Label(self.inputFrame, text="IDEvent")
+
+        entryCity = Entry(self.inputFrame)
+        entryEvent = Entry(self.inputFrame)
+        entryAnno = Entry(self.inputFrame)
+        entryIDEvent = Entry(self.inputFrame)
+        entrySeason = Entry(self.inputFrame)
+
+        # MEDAL
+        labelMedal = Label(self.inputFrame, text="Medaglia")
+        labelSport = Label(self.inputFrame, text="Sport")
         labelAnno1 = Label(self.inputFrame, text="Anno1")
+        labelAnno2 = Label(self.inputFrame, text="Anno2")
         labelQuantity = Label(self.inputFrame, text="Quantità")
         labelTypeMedal = Label(self.inputFrame, text="Tipo medaglia")
 
-        labelAnno = Label(self.inputFrame, text="Anno")
-        labelAnno2 = Label(self.inputFrame, text="Anno2")
-        labelSex = Label(self.inputFrame, text="Sesso")
-
-        labelSeason = Label(self.inputFrame, text="Stagione")
-
-        entryCity = Entry(self.inputFrame)
+        entryMedal = Entry(self.inputFrame)
         entrySport = Entry(self.inputFrame)
-        entryTeam = Entry(self.inputFrame)
-        entryEvent = Entry(self.inputFrame)
         entryAnno1 = Entry(self.inputFrame)
+        entryAnno2 = Entry(self.inputFrame)
         entryQuantity = Entry(self.inputFrame)
 
-        entryAnno = Entry(self.inputFrame)
-        entryAnno2 = Entry(self.inputFrame)
-
-        entrySeason = Entry(self.inputFrame)
-
         radiobtnM = Radiobutton(self.inputFrame, text="M", variable=self.radioVar,
-                                value="M", command=self.checkInput)  # Se variable = 0, il sesso scelto è M. Altrimenti F.
+                                value="M", command=self.checkInput)
         radiobtnF = Radiobutton(self.inputFrame, text="F", variable=self.radioVar, value="F", command=self.checkInput)
 
         radiobtnTotal = Radiobutton(self.inputFrame, text="Total", variable=self.radioMedal,
@@ -209,7 +236,10 @@ class Window(Tk):
                                  "Anno": [labelAnno, entryAnno], "Anno2": [labelAnno2, entryAnno2],
                                  "Sesso": [labelSex, radiobtnM, radiobtnF], "Stagione": [labelSeason, entrySeason],
                                  "Medaglia": [labelTypeMedal, radiobtnTotal, radiobtnGold, radiobtnSilver,
-                                              radiobtnBronze]}
+                                              radiobtnBronze], "Nome": [labelAthleteName, entryAthleteName],
+                                 "Età": [labelAge, entryAge], "Altezza": [labelHeight, entryHeight], "Peso": [labelWeight, entryWeight],
+                                 "NOC": [labelNoc, entryNoc], "ID": [labelID, entryID], "IDEvent": [labelIDEvent, entryIDEvent],
+                                 "Medal": [labelMedal, entryMedal]}
 
     def showFields(self, key):
         """Arrange labels and entries into the input frame"""
@@ -278,11 +308,13 @@ class Window(Tk):
         elif val == 2 or val == 3:
             self.showFields("Team")
             self.showFields("Anno")
-        elif val == 4 or val == 6:
+        elif val == 4 or val == 6 or val == 13:
             self.showFields("Evento")
             self.showFields("Città")
             self.showFields("Anno")
             self.showFields("Stagione")
+            if val == 13:
+                self.showFields("IDEvent")
         elif val == 5:
             self.showFields("Team")
         elif val == 7:
@@ -293,24 +325,33 @@ class Window(Tk):
             self.showFields("Sesso")
         elif val == 9:
             self.showFields("Quantità")
-        elif val == 10:
-            self.showFields("")
-        elif val == 11:
-            self.showFields("")
+        elif val == 10 or val == 11:
+            self.showFields("ID")
+            self.showFields("Nome")
+            self.showFields("Sesso")
+            self.showFields("Età")
+            self.showFields("Altezza")
+            self.showFields("Peso")
+            self.showFields("Team")
+            self.showFields("NOC")
+            if val == 10:
+                self.showFields("Medal")
+                self.showFields("Sport")
+                self.showFields("IDEvent")
         elif val == 12:
-            self.showFields("")
-        elif val == 13:
-            self.showFields("")
-        elif val == 14:
+            self.showFields("ID")
+        elif val == 14: # tutta la roba dell'evento ... forse?
             self.showFields("")
         elif val == 15:
-            self.showFields("")
-        elif val == 16:
-            self.showFields("")
-        elif val == 17:
-            self.showFields("")
+            self.showFields("IDEvent")
+        elif val == 16 or val == 17:
+            self.showFields("ID")
+            self.showFields("Medal")
+            self.showFields("Sport")
+            self.showFields("IDEvent")
         elif val == 18:
-            self.showFields("")
+            self.showFields("ID")
+            self.showFields("IDEvent")
 
 
     def showNoResultLabel(self):
@@ -332,6 +373,8 @@ class Window(Tk):
                 cols = ("Summer", "Winter")
             elif numQuery == 7:
                 cols = ("Team", "Medal counter")
+            elif numQuery == 9:
+                cols = ("Year", "Participation")
             else:
                 cols = list(results[0].keys())   # get names of the attributes
 
@@ -359,9 +402,12 @@ class Window(Tk):
             elif numQuery == 7:
                 for key, value in results.items():
                     self.tree.insert("", "end", values=(key, value))
+            elif numQuery == 9:
+                for key in sorted(results):
+                    self.tree.insert("", "end", values=(key, results[key]))
             else:
                 for result in results:
-                    if numQuery == 3 or numQuery == 5:
+                    if numQuery == 3 or numQuery == 5: # Getting medal data to create second table of results
                         for medal in result["Achievements"]:
                             medal["IDAthlete"] = result["ID"]
                             medals.append(medal)
@@ -374,7 +420,8 @@ class Window(Tk):
                                 myValues.append("<"+medal["Medal"]+", "+medal["Sport"]+">")
                     self.tree.insert("", "end", values=tuple(myValues))
 
-            self.tree.grid(row=1, columnspan=3)
+            # Show results
+            self.tree.grid(row=1, columnspan=3, pady=2)
 
             if numQuery == 3 or numQuery == 5: # Create second table to display medals in detail
                 cols = tuple(list(medals[0].keys()))
@@ -387,7 +434,7 @@ class Window(Tk):
                     for col in cols:
                         myValues.append(medal[col])
                     self.treeMedal.insert("", "end", values=tuple(myValues))
-                self.treeMedal.grid(row=2, column=0)
+                self.treeMedal.grid(row=2, column=0, pady=2)
 
 
     def create_menu_button(self):
@@ -395,7 +442,6 @@ class Window(Tk):
         menu_button = Menubutton(
             self,
             text='Seleziona una query', width=100)
-
         menu = Menu(menu_button, tearoff=False)
 
         numbers = [x for x in range(0, 19)]  # indexes for queries
