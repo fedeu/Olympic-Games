@@ -2,9 +2,6 @@ from tkinter import *
 from tkinter.ttk import *
 from QueryDb import *
 
-# AGGIUNGI QUERY DI INSERIMENTO/CANC/MOD
-# FONT VARI
-
 queries = ["Mostra gli eventi che ha ospitato una data città",
            "Visualizza altezza, peso ed età degli atleti che hanno vinto una medaglia per una data disciplina",
            "Mostra le medaglie vinte da un team in un dato anno",
@@ -57,33 +54,48 @@ class Window(Tk):
         """Checks if input is in the correct format. Returns None if not"""
         entry = self.labelsAndEntries[key][1]
 
-        if key == "Anno" or key == "Anno1" or key == "Anno2" or key == "Quantità":  # check on integers
+        # Get radiobutton value
+        if key == "Sesso" or key == "Medaglia":
+            if key == "Sesso":
+                inputField = self.radioVar.get()
+            elif key == "Medaglia":
+                inputField = self.radioMedal.get()
+        else:
             inputField = entry.get()
-            if len(inputField) == 4: # the correct length of the year
+
+            if key == "Anno" or key == "Anno1" or key == "Anno2" or key == "Quantità" or key == "Età":  # check on integers
                 try:
                     inputField = int(inputField)
                 except:
                     inputField = None
-            else:
-                inputField = None
-        elif key == "Sesso":
-            inputField = self.radioVar.get()
-        elif key == "Medaglia":
-            inputField = self.radioMedal.get()
-        elif key == "Stagione":
-            inputField = entry.get()
-            if inputField != "Winter" or inputField != "Summer":
-                inputField = None
-        else:  # check on strings
-            inputField = entry.get()
-            special_characters = "\"!@#$%^&*()+?_=<>/\""
-            if any(c in special_characters for c in inputField):# check on special characters
-                inputField = None
-            elif all(c in " " for c in inputField): # check on string full of blank spaces
-                inputField = None
-            if inputField is not None and (key == "Città" or key == "Team"):  # check on numbers
-                numbers = "0123456789"
-                if any(c in numbers for c in inputField):
+            elif key == "Weight" or key == "Height": # check on float
+                try:
+                    inputField = float(inputField)
+                except:
+                    inputField = None
+            elif key == "Stagione":
+                if inputField != "Winter" or inputField != "Summer":
+                    inputField = None
+            elif key == "IDEvent":
+                if len(entry) > 3:
+                    if entry[:2] != "EV":
+                        inputField = None
+                else:
+                    inputField = None
+            elif key == "Medal":
+                if inputField != "Gold" or inputField != "Silver" or inputField != "Bronze" or inputField != "":
+                    inputField = None
+            else:  # check on strings
+                special_characters = "\"!@#$%^&*()+?_=<>/\""
+                if any(c in special_characters for c in inputField):# check on special characters
+                    inputField = None
+                elif all(c in " " for c in inputField): # check on string full of blank spaces
+                    inputField = None
+                if inputField is not None and (key != "Sport" or key != "Evento"):  # check on numbers
+                    numbers = "0123456789"
+                    if any(c in numbers for c in inputField):
+                        inputField = None
+                if inputField is not None and key == "NOC" and len(inputField) != 3:
                     inputField = None
         return inputField
 
@@ -237,8 +249,9 @@ class Window(Tk):
                                  "Sesso": [labelSex, radiobtnM, radiobtnF], "Stagione": [labelSeason, entrySeason],
                                  "Medaglia": [labelTypeMedal, radiobtnTotal, radiobtnGold, radiobtnSilver,
                                               radiobtnBronze], "Nome": [labelAthleteName, entryAthleteName],
-                                 "Età": [labelAge, entryAge], "Altezza": [labelHeight, entryHeight], "Peso": [labelWeight, entryWeight],
-                                 "NOC": [labelNoc, entryNoc], "ID": [labelID, entryID], "IDEvent": [labelIDEvent, entryIDEvent],
+                                 "Età": [labelAge, entryAge], "Altezza": [labelHeight, entryHeight],
+                                 "Peso": [labelWeight, entryWeight], "NOC": [labelNoc, entryNoc],
+                                 "ID": [labelID, entryID], "IDEvent": [labelIDEvent, entryIDEvent],
                                  "Medal": [labelMedal, entryMedal]}
 
     def showFields(self, key):
@@ -266,6 +279,8 @@ class Window(Tk):
                 riga = 2
             elif key == "Stagione":
                 riga = 3
+            elif key == "IDEvent":
+                riga = 4
         elif self.labelsAndEntries["Team"][0].grid_info() is not None and key == "Anno":
             riga = 1
 
