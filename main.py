@@ -1,5 +1,8 @@
 from tkinter import *
 from tkinter.ttk import *
+
+import pymongo.cursor
+
 from QueryDb import *
 
 queries = ["Mostra gli eventi che ha ospitato una data città",
@@ -42,7 +45,7 @@ class Window(Tk):
         self.radioVar = StringVar()
         self.radioMedal = StringVar()
         self.createLabelsAndEntries()
-        self.labelError = Label(self, text="", style="BW.TLabel") # prima era nel self
+        self.labelError = Label(self, text="", style="BW.TLabel")
         self.subtmitbtn = Button(self, text="Esegui", command=self.callQuery)
 
         # Create widgets and variables for output area
@@ -62,7 +65,6 @@ class Window(Tk):
                 inputField = self.radioMedal.get()
         else:
             inputField = entry.get()
-
             if key == "Anno" or key == "Anno1" or key == "Anno2" or key == "Quantità" or key == "Età":  # check on integers
                 try:
                     inputField = int(inputField)
@@ -101,8 +103,11 @@ class Window(Tk):
 
 
     def callQuery(self):
+        if self.tree.grid_info() is not None:
+            self.tree.grid_remove()
+        if self.treeMedal.grid_info() is not None:
+            self.treeMedal.grid_remove()
         errorText = ""
-        #self.labelError.config(text="")
         val = int(self.selected_query.get())
         res = None
         numQuery = 0
@@ -117,7 +122,7 @@ class Window(Tk):
             if sport is not None:
                 res, numQuery = query2(sport)
             else:
-                errorText ="Inserisci uno sport valido"
+                errorText = "Inserisci uno sport valido"
         elif val == 2 or val == 3:
             team = self.checkInput("Team")
             anno = self.checkInput("Anno")
@@ -132,7 +137,7 @@ class Window(Tk):
                 res, numQuery = query3(team, anno)
             else:
                 res, numQuery = query4(team, anno)
-        elif val == 4 or val == 6:
+        elif val == 4 or val == 6 or val == 13:
             evento = self.checkInput("Evento")
             anno = self.checkInput("Anno")
             citta = self.checkInput("Città")
@@ -148,8 +153,11 @@ class Window(Tk):
             else:
                 if val == 4:
                     res, numQuery = query5(evento, anno, citta, season)
-                else:
+                elif val == 6:
                     res, numQuery = query7(evento, anno, citta, season)
+                else:
+                    # query 14
+                    pass
         elif val == 5:
             team = self.checkInput("Team")
             if team is None:
@@ -176,6 +184,80 @@ class Window(Tk):
                 errorText = "Inserisci una quantità valida"
             else:
                 res, numQuery = query10()
+        elif val == 10 or val == 11:
+            idAthlete = self.checkInput("ID")
+            nome = self.checkInput("Nome")
+            sesso = self.checkInput("Sesso")
+            eta = self.checkInput("Età")
+            altezza = self.checkInput("Altezza")
+            peso = self.checkInput("Peso")
+            team = self.checkInput("Team")
+            noc = self.checkInput("NOC")
+            # show errors
+            if idAthlete is None:
+                errorText = "Inserisci un ID corretto - L'ID deve essere numerico"
+            elif nome is None:
+                errorText = "Inserisci un nome corretto"
+            elif eta is None:
+                errorText = "Inserisci un'età corretta"
+            elif altezza is None:
+                errorText = "Inserisci un'altezza corretta - L'altezza deve essere in cm"
+            elif peso is None:
+                errorText = "Inserisci un peso corretto - Il peso deve essere in kg"
+            elif team is None:
+                errorText = "Inserisci un team corretto"
+            elif noc is None:
+                errorText = "Inserisci un NOC corretto - Il NOC deve essere di 3 caratteri"
+
+            if val == 10:
+                #medaglia = self.checkInput("Medal")
+                sport = self.checkInput("Sport")
+                idEvent = self.checkInput("IDEvent")
+                if sport is None:
+                    errorText = "Inserisci uno sport corretto"
+                elif idEvent is None:
+                    errorText = "Inserisci un id evento corretto - Deve iniziare per EV e contenere caratteri numerici"
+                else:
+                    # check su id evento + esegui query
+                    pass
+            elif val == 11:
+                # esegui query
+                pass
+        elif val == 12:
+            id = self.checkInput("ID")
+            if id is None:
+                errorText = "Inserisci un ID corretto - L'ID deve essere numerico"
+            # query
+        elif val == 14:
+            pass
+        elif val == 15:
+            idEvent = self.checkInput("IDEvent")
+            if idEvent is None:
+                errorText = "Inserisci un id evento corretto - Deve iniziare per EV e contenere caratteri numerici"
+            else:
+                # query
+                pass
+        elif val == 16 or val == 17:
+            idAthlete = self.checkInput("ID")
+            medaglia = self.checkInput("Medal")
+            sport = self.checkInput("Sport")
+            idEvent = self.checkInput("IDEvent")
+            if idAthlete is None:
+                errorText = "Inserisci un ID corretto - L'ID deve essere numerico"
+            elif idEvent is None:
+                errorText = "Inserisci un id evento corretto - Deve iniziare per EV e contenere caratteri numerici"
+                """elif medaglia is None:
+                errorText = "Inserisci una medaglia corretta - Deve essere nulla o Gold/Silver/Bronze"""
+            elif sport is None:
+                errorText = "Inserisci uno sport corretto"
+
+            if val == 16:
+                # query
+                pass
+            else:
+                #altra query
+                pass
+
         if errorText != "":
             self.labelError.config(text=errorText)
             self.labelError.grid(row=3, column=1, padx=1, pady=4)
@@ -254,17 +336,15 @@ class Window(Tk):
                                  "ID": [labelID, entryID], "IDEvent": [labelIDEvent, entryIDEvent],
                                  "Medal": [labelMedal, entryMedal]}
 
-    def showFields(self, key):
+    def showFields(self, key, riga):
         """Arrange labels and entries into the input frame"""
         label = self.labelsAndEntries[key][0]
         entry = self.labelsAndEntries[key][1]
-        riga = 0
 
         if len(self.labelsAndEntries[key]) == 3:  # to show the 2nd radio button of "Sesso"
             entry2 = self.labelsAndEntries[key][2]
             entry2.grid(row=riga, column=2, padx=2, pady=2)
         elif len(self.labelsAndEntries[key]) == 5: # to show the other radio button of "Medaglia"
-            riga = 2
             entry2 = self.labelsAndEntries[key][2]
             entry3 = self.labelsAndEntries[key][3]
             entry4 = self.labelsAndEntries[key][4]
@@ -272,22 +352,6 @@ class Window(Tk):
             entry3.grid(row=riga, column=3, padx=2, pady=2)
             entry4.grid(row=riga, column=4, padx=2, pady=2)
 
-        if self.labelsAndEntries["Evento"][0].grid_info() is not None:
-            if key == "Città":
-                riga = 1
-            elif key == "Anno":
-                riga = 2
-            elif key == "Stagione":
-                riga = 3
-            elif key == "IDEvent":
-                riga = 4
-        elif self.labelsAndEntries["Team"][0].grid_info() is not None and key == "Anno":
-            riga = 1
-
-        if key == "Anno2":
-            riga = 1
-        if key == "Medaglia":
-            riga = 2
         label.grid(row=riga, column=0, padx=2, pady=2)
         entry.grid(row=riga, column=1, padx=2, pady=2)
         entry.focus_set()
@@ -317,56 +381,56 @@ class Window(Tk):
         val = int(self.selected_query.get())
         self.hideFields()
         if val == 0:
-            self.showFields("Città")
+            self.showFields("Città", 0)
         elif val == 1:
-            self.showFields("Sport")
+            self.showFields("Sport", 0)
         elif val == 2 or val == 3:
-            self.showFields("Team")
-            self.showFields("Anno")
+            self.showFields("Team", 0)
+            self.showFields("Anno", 1)
         elif val == 4 or val == 6 or val == 13:
-            self.showFields("Evento")
-            self.showFields("Città")
-            self.showFields("Anno")
-            self.showFields("Stagione")
+            self.showFields("Evento", 0)
+            self.showFields("Città", 1)
+            self.showFields("Anno", 2)
+            self.showFields("Stagione", 3)
             if val == 13:
-                self.showFields("IDEvent")
+                self.showFields("IDEvent", 4)
         elif val == 5:
-            self.showFields("Team")
+            self.showFields("Team", 0)
         elif val == 7:
-            self.showFields("Anno1")
-            self.showFields("Anno2")
-            self.showFields("Medaglia")
+            self.showFields("Anno1", 0)
+            self.showFields("Anno2", 1)
+            self.showFields("Medaglia", 2)
         elif val == 8:
-            self.showFields("Sesso")
+            self.showFields("Sesso", 0)
         elif val == 9:
-            self.showFields("Quantità")
+            self.showFields("Quantità", 0)
         elif val == 10 or val == 11:
-            self.showFields("ID")
-            self.showFields("Nome")
-            self.showFields("Sesso")
-            self.showFields("Età")
-            self.showFields("Altezza")
-            self.showFields("Peso")
-            self.showFields("Team")
-            self.showFields("NOC")
+            self.showFields("ID", 0)
+            self.showFields("Nome", 1)
+            self.showFields("Sesso", 2)
+            self.showFields("Età", 3)
+            self.showFields("Altezza", 4)
+            self.showFields("Peso", 5)
+            self.showFields("Team", 6)
+            self.showFields("NOC", 7)
             if val == 10:
-                self.showFields("Medal")
-                self.showFields("Sport")
-                self.showFields("IDEvent")
+                self.showFields("Medal", 8)
+                self.showFields("Sport", 9)
+                self.showFields("IDEvent", 10)
         elif val == 12:
-            self.showFields("ID")
+            self.showFields("ID", 0)
         elif val == 14: # tutta la roba dell'evento ... forse?
             self.showFields("")
         elif val == 15:
-            self.showFields("IDEvent")
+            self.showFields("IDEvent", 0)
         elif val == 16 or val == 17:
-            self.showFields("ID")
-            self.showFields("Medal")
-            self.showFields("Sport")
-            self.showFields("IDEvent")
+            self.showFields("ID", 0)
+            self.showFields("Medal", 1)
+            self.showFields("Sport", 2)
+            self.showFields("IDEvent", 3)
         elif val == 18:
-            self.showFields("ID")
-            self.showFields("IDEvent")
+            self.showFields("ID", 0)
+            self.showFields("IDEvent", 1)
 
 
     def showNoResultLabel(self):
@@ -374,13 +438,13 @@ class Window(Tk):
         self.labelNotFound.grid(row=0, column=0)
 
 
-    def showResults(self, results, numQuery):
+    def showResults(self, results, numQuery): # MANCANO LA QUERY 9 E QUELLE COI GRAFICI
         """Arrange widgets in the output area"""
+        if self.labelNotFound.grid_info() is not None:
+            self.labelNotFound.grid_remove()
         self.outputFrame.grid(row=4, columnspan=2, padx=10, pady=10)
-        """elif results.count() == 0:
-                    self.showNoResultLabel()"""
         # Check on length of results: if not 0 display table
-        if type(results) is list and len(results) == 0:
+        if (type(results) is list and len(results) == 0) or (type(results) is pymongo.cursor.Cursor and results.count() == 0):
             self.showNoResultLabel()
         else:
             # Setting columns for the result table
@@ -404,10 +468,12 @@ class Window(Tk):
             for col in cols:
                 if col != "Achievements" or (col == "Achievements" and numQuery == 2):
                     self.tree.heading(col, text=col)
-                    if col == "Sex" or col == "Height" or col == "Weight" or col == "NOC" or col == "Age":
+                    if col == "Sex" or col == "Height" or col == "Weight" or col == "NOC" or col == "Age" or col == "Year":
                         self.tree.column(col, minwidth=0, width=50)
                     elif col == "Achievements":
                         self.tree.column(col, minwidth=50, width=300)
+                    elif col == "EventName":
+                        self.tree.column(col, minwidth=0, width=250)
                     else:
                         self.tree.column(col, minwidth=0, width=150)
 

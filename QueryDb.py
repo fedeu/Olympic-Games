@@ -257,14 +257,13 @@ def query9(sex): # -- Riporta per ogni anno il numero di partecipazioni di atlet
 
     yearMap = {}
     for result in queryResult:
-        for event in result["participation"]:
-            if event["Year"] not in yearMap.keys():
-                yearMap[event["Year"]] = 1
+        for part in result["participation"]:
+            if part["Year"] not in yearMap.keys():
+                yearMap[part["Year"]] = 1
             else:
-                yearMap[event["Year"]] += 1
-
-    """for key in sorted(yearMap):
-        print("%s: %s" % (key, yearMap[key]))"""
+                yearMap[part["Year"]] += 1
+    for key in sorted(yearMap):
+        print("%s: %s" % (key, yearMap[key]))
     return yearMap, 9
 
 
