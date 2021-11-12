@@ -1,8 +1,6 @@
 from tkinter import *
 from tkinter.ttk import *
-
 import pymongo.cursor
-
 from QueryDb import *
 
 queries = ["Mostra gli eventi che ha ospitato una data città",
@@ -56,7 +54,7 @@ class Window(Tk):
     def checkInput(self, key):
         """Checks if input is in the correct format. Returns None if not"""
         entry = self.labelsAndEntries[key][1]
-
+        inputField = None
         # Get radiobutton value
         if key == "Sesso" or key == "Medaglia":
             if key == "Sesso":
@@ -420,7 +418,7 @@ class Window(Tk):
         elif val == 12:
             self.showFields("ID", 0)
         elif val == 14: # tutta la roba dell'evento ... forse?
-            self.showFields("")
+            self.showFields("", 0)
         elif val == 15:
             self.showFields("IDEvent", 0)
         elif val == 16 or val == 17:

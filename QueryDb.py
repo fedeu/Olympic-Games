@@ -14,14 +14,42 @@ def query2(sport): # -- Visualizza altezza, peso ed età degli atleti che hanno 
     return queryResult, 2
 
 
-def query3(team, year):  # team,year #-- Mostra le medaglie vinte da un team (nazione) in un dato anno;
-    lista = []
-    result = db.event.find({"Year": year}, {"_id": 0, "IDEvent": 1})
+def query3(team, year):#-- Mostra le medaglie vinte da un team (nazione) in un dato anno
+    """team = "China"#input("Inserisci il team: ")
+    year = 1992 #int(input("Anno: "))"""
+
+    result = db.event.aggregate([
+        {"$match": {"Year": year}},
+        {"$lookup": {
+            "from": "athlete",
+            "localField": "IDEvent",
+            "foreignField": "Achievements.IDEvent",
+            "as": "lista"
+        }}
+    ])
+
+    #Elimino le medaglie nulle
+    finalResult = []
     for r in result:
-        result2 = db.athlete.find({"Achievements.IDEvent": r["IDEvent"], "Achievements.Medal": {"$ne": None}, "Team": team})
-        for i in result2:
-            lista.append(i)
-    return lista, 3
+        for item in r["lista"]:
+            newMedaglia = []
+            if item["Team"] == team:
+                medaglia = item["Achievements"]
+                for med in medaglia:
+                    if med["Medal"] is not None:
+                        newMedaglia.append(med)
+                temp = item
+                temp["Achievements"] = newMedaglia
+                finalResult.append(temp)
+
+    #Elimino i Duplicati
+    res = []
+    for i in finalResult:
+        if i not in res:
+            res.append(i)
+    """for r in res:
+        print(r)"""
+    return res, 3
 
 
 def query4(team, year):  # -- Calcola quante medaglie sono state vinte da una data nazione nelle 2 diverse stagioni per uno specifico anno
@@ -50,8 +78,14 @@ def query4(team, year):  # -- Calcola quante medaglie sono state vinte da una da
     #print("Summer: " + str(summerMedals) + ", Winter: " + str(winterMedals))
 
 
-def query5(nomeEvento, annoEvento, cittàEvento, season): # -- Mostra tutte le medaglie vinte in un dato evento e gli atleti che le hanno vinte;
-    #nomeEvento = "Judo Men's Extra-Lightweight" annoEvento = 2012  cittàEvento = "London" season = "Summer"
+def query5(nomeEvento, annoEvento, cittàEvento, season):
+    #Mostra tutte le medaglie vinte in un dato evento e gli atleti che le hanno vinte;
+    #print("Informazioni evento")
+    #nomeEvento = "Judo Men's Extra-Lightweight" #input("Nome: ")
+    #annoEvento = 2012  #int(input("Anno: "))
+    #cittàEvento = "London" #input("Città: ")
+    #season = "Summer" #input("Season :")
+
     result = db.event.aggregate([
         {"$match": {
                 "EventName": nomeEvento,
@@ -65,18 +99,28 @@ def query5(nomeEvento, annoEvento, cittàEvento, season): # -- Mostra tutte le m
             "foreignField": "Achievements.IDEvent",
             "as": "lista"
 
-        }},
-        {"$limit": 5}
+        }},{"$limit": 5}
     ])
 
-    lista2 = []
+    #Elimino le medaglie nulle
+    finalResult = []
     for r in result:
         for item in r["lista"]:
-            for medal in item["Achievements"]:
-                if medal["Medal"] is not None:
-                    lista2.append(item)
+            newMedaglia = []
+            medaglia = item["Achievements"]
+            for med in medaglia:
+                if med["Medal"] is not None:
+                    newMedaglia.append(med)
+            temp = item
+            temp["Achievements"] = newMedaglia
+            finalResult.append(temp)
 
-    return lista2, 5
+    #Elimino i Duplicati
+    res = []
+    for i in finalResult:
+        if i not in res:
+            res.append(i)
+    return res, 5
 
 
 def query6(nazione):  # -- Elabora un grafico a torta degli sport in cui una data nazione va meglio
