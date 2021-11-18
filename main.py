@@ -31,12 +31,21 @@ class Window(Tk):
         styleError.configure("BW.TLabel", foreground="red")
 
         # Menubutton
+        self.menu_button = Menubutton(self, text='Seleziona una query', width=100)
         self.selected_query = IntVar()
         self.selected_query.trace("w", self.menu_item_selected)
         self.create_menu_button()
 
-        self.inputFrame = Frame(self, width=200, height=200, relief=GROOVE, borderwidth=1)
-        self.outputFrame = Frame(self, width=400, height=500, relief=GROOVE, borderwidth=1)
+        # Frames
+        self.inputFrame = Frame(self, relief=GROOVE, borderwidth=1)
+        self.outputFrame = Frame(self, width=900, height=600, relief=GROOVE, borderwidth=1)
+
+        self.columnconfigure(0, weight=1)
+        self.rowconfigure(1, weight=1)
+        #self.inputFrame.rowconfigure(0, weight=1)
+        #self.inputFrame.columnconfigure(0, weight=1)
+        self.outputFrame.rowconfigure(0, weight=1)
+        self.outputFrame.columnconfigure(0, weight=1)
 
         # Create widgets and variables for input area
         self.labelsAndEntries = {}
@@ -48,8 +57,8 @@ class Window(Tk):
 
         # Create widgets and variables for output area
         self.tree = Treeview(self.outputFrame)
-        self.treeMedal = Treeview(self.outputFrame)
-        self.labelNotFound = Label(self.outputFrame, text="")
+        """self.treeMedal = Treeview(self.outputFrame)
+        self.labelNotFound = Label(self.outputFrame, text="")"""
 
     def checkInput(self, key):
         """Checks if input is in the correct format. Returns None if not"""
@@ -102,13 +111,15 @@ class Window(Tk):
 
     def callQuery(self):
         if self.tree.grid_info() is not None:
+            for item in self.tree.get_children():
+                self.tree.delete(item)
             self.tree.grid_remove()
-        if self.treeMedal.grid_info() is not None:
-            self.treeMedal.grid_remove()
+        """if self.treeMedal.grid_info() is not None:
+            self.treeMedal.grid_remove()"""
         errorText = ""
         val = int(self.selected_query.get())
         res = None
-        numQuery = 0
+        numQuery = int()
         if val == 0:
             citta = self.checkInput("Città")
             if citta is not None:
@@ -258,7 +269,7 @@ class Window(Tk):
 
         if errorText != "":
             self.labelError.config(text=errorText)
-            self.labelError.grid(row=3, column=1, padx=1, pady=4)
+            self.labelError.grid(row=3, column=0, padx=1, pady=4)
         else:
             self.showResults(res, numQuery)
 
@@ -353,7 +364,7 @@ class Window(Tk):
         label.grid(row=riga, column=0, padx=2, pady=2)
         entry.grid(row=riga, column=1, padx=2, pady=2)
         entry.focus_set()
-        self.subtmitbtn.grid(row=2, column=1, pady=5)
+        self.subtmitbtn.grid(row=2, column=0, pady=5)
 
     def hideFields(self):
         """Hide already created fields to place the new ones"""
@@ -366,17 +377,19 @@ class Window(Tk):
                 item[2].grid_remove()
             item[0].grid_remove()
             item[1].grid_remove()
-        #self.labelError.config(text="")
         self.labelError.grid_remove()
-        #self.labelNotFound.config(text="")
-        self.labelNotFound.grid_remove()
+        #self.labelNotFound.grid_remove()
+        for item in self.tree.get_children():
+            self.tree.delete(item)
+
         self.tree.grid_remove()
-        self.treeMedal.grid_remove()
+        #self.treeMedal.grid_remove()
 
     def menu_item_selected(self, *args):
         """ handle menu selected event """
-        self.inputFrame.grid(row=1, column=1, padx=10, pady=10)
+        self.inputFrame.grid(row=1, column=0, padx=10, pady=10)
         val = int(self.selected_query.get())
+        self.menu_button.config(text=queries[val])
         self.hideFields()
         if val == 0:
             self.showFields("Città", 0)
@@ -438,9 +451,9 @@ class Window(Tk):
 
     def showResults(self, results, numQuery): # MANCANO LA QUERY 9 E QUELLE COI GRAFICI
         """Arrange widgets in the output area"""
-        if self.labelNotFound.grid_info() is not None:
-            self.labelNotFound.grid_remove()
-        self.outputFrame.grid(row=4, columnspan=2, padx=10, pady=10)
+        """if self.labelNotFound.grid_info() is not None:
+            self.labelNotFound.grid_remove()"""
+        self.outputFrame.grid(row=4, columnspan=4, padx=10, pady=10, sticky=E+W+N+S)
         # Check on length of results: if not 0 display table
         if (type(results) is list and len(results) == 0) or (type(results) is pymongo.cursor.Cursor and results.count() == 0):
             self.showNoResultLabel()
@@ -464,16 +477,21 @@ class Window(Tk):
 
             self.tree.config(col=cols, show="headings")
             for col in cols:
-                if col != "Achievements" or (col == "Achievements" and numQuery == 2):
-                    self.tree.heading(col, text=col)
-                    if col == "Sex" or col == "Height" or col == "Weight" or col == "NOC" or col == "Age" or col == "Year":
-                        self.tree.column(col, minwidth=0, width=50)
-                    elif col == "Achievements":
-                        self.tree.column(col, minwidth=50, width=300)
-                    elif col == "EventName":
-                        self.tree.column(col, minwidth=0, width=250)
-                    else:
-                        self.tree.column(col, minwidth=0, width=150)
+                #if col != "Achievements" or (col == "Achievements" and numQuery == 2):
+                self.tree.heading(col, text=col)
+                minWidth = 0
+                if col == "Sex" or col == "Height" or col == "Weight" or col == "NOC" or col == "Age" or col == "Year" or col == "ID":
+                    width = 50
+                elif col == "IDEvent":
+                    width = 100
+                elif col == "Achievements":
+                    minWidth = 50
+                    width = 300
+                elif col == "EventName":
+                    width = 250
+                else:
+                    width = 150
+                self.tree.column(col, minwidth=minWidth, width=width)
 
             # Setting the treeview to display results
             if numQuery == 4:
@@ -486,6 +504,7 @@ class Window(Tk):
                     self.tree.insert("", "end", values=(key, results[key]))
             else:
                 for result in results:
+                    allMedals = []
                     if numQuery == 3 or numQuery == 5: # Getting medal data to create second table of results
                         for medal in result["Achievements"]:
                             medal["IDAthlete"] = result["ID"]
@@ -493,16 +512,22 @@ class Window(Tk):
                     myValues = []
                     for col in cols:
                         if col != "Achievements":
+                            if col == "Age": # convert age from float to int
+                                result[col] = int(result[col])
                             myValues.append(result[col])
-                        elif col == "Achievements" and numQuery == 2:
+                        elif col == "Achievements": #and numQuery == 2:
                             for medal in result["Achievements"]: # Format medals
-                                myValues.append("<"+medal["Medal"]+", "+medal["Sport"]+">")
+                                allMedals.append(medal["Medal"]+", "+medal["Sport"])
+                                """myValues.append("<"+medal["Medal"]+", "+medal["Sport"]+">")
+                                print(result["Name"], myValues)"""
+                            myValues.append(allMedals)
                     self.tree.insert("", "end", values=tuple(myValues))
 
             # Show results
-            self.tree.grid(row=1, columnspan=3, pady=2)
+            #self.tree.grid(row=1, columnspan=3, pady=2)
+            self.tree.pack(fill="both", expand=True)
 
-            if numQuery == 3 or numQuery == 5: # Create second table to display medals in detail
+            """if numQuery == 3 or numQuery == 5: # Create second table to display medals in detail
                 cols = tuple(list(medals[0].keys()))
                 self.treeMedal.config(col=cols, show="headings")
                 for col in cols:
@@ -513,15 +538,12 @@ class Window(Tk):
                     for col in cols:
                         myValues.append(medal[col])
                     self.treeMedal.insert("", "end", values=tuple(myValues))
-                self.treeMedal.grid(row=2, column=0, pady=2)
+                self.treeMedal.grid(row=2, column=0, pady=2)"""
 
 
     def create_menu_button(self):
         """ create a menu button for query selecting"""
-        menu_button = Menubutton(
-            self,
-            text='Seleziona una query', width=100)
-        menu = Menu(menu_button, tearoff=False)
+        menu = Menu(self.menu_button, tearoff=False)
 
         numbers = [x for x in range(0, 19)]  # indexes for queries
         for number in numbers:
@@ -531,8 +553,8 @@ class Window(Tk):
                 variable=self.selected_query)
 
         # associate menu with the Menubutton
-        menu_button["menu"] = menu
-        menu_button.grid(row=0, column=0, padx=10, pady=10)
+        self.menu_button["menu"] = menu
+        self.menu_button.grid(row=0, column=0, padx=10, pady=10)
 
 
 if __name__ == "__main__":

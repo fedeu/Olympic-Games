@@ -10,7 +10,7 @@ def query1(city):
 
 
 def query2(sport): # -- Visualizza altezza, peso ed età degli atleti che hanno vinto una medaglia per una data disciplina;
-    queryResult = db.athlete.find({"Achievements.Sport": sport, "Achievements.Medal": {"$ne": None}, "Height": {"$ne": None}, "Weight": {"$ne": None}}, {"_id": 0, "ID": 1, "Height": 1, "Weight": 1, "Age": 1, "Team": 1, "Achievements": 1})
+    queryResult = db.athlete.find({"Achievements.Sport": sport, "Achievements.Medal": {"$ne": None}, "Height": {"$ne": None}, "Weight": {"$ne": None}}, {"_id": 0, "NOC": 0})
     return queryResult, 2
 
 
