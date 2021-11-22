@@ -47,8 +47,7 @@ def query3(team, year):#-- Mostra le medaglie vinte da un team (nazione) in un d
     for i in finalResult:
         if i not in res:
             res.append(i)
-    """for r in res:
-        print(r)"""
+
     return res, 3
 
 

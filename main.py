@@ -77,23 +77,30 @@ class Window(Tk):
                     inputField = int(inputField)
                 except:
                     inputField = None
-            elif key == "Weight" or key == "Height": # check on float
+            elif key == "Peso" or key == "Altezza": # check on float
+                print(inputField)
                 try:
                     inputField = float(inputField)
+                    print(inputField)
                 except:
+                    print("nun ce l'ho fatta")
                     inputField = None
             elif key == "Stagione":
-                if inputField != "Winter" or inputField != "Summer":
-                    inputField = None
+                if inputField != "Winter":
+                    if inputField != "Summer":
+                        inputField = None
             elif key == "IDEvent":
-                if len(entry) > 3:
-                    if entry[:2] != "EV":
+                if len(inputField) > 3:
+                    if inputField[:2] != "EV":
                         inputField = None
                 else:
                     inputField = None
             elif key == "Medal":
-                if inputField != "Gold" or inputField != "Silver" or inputField != "Bronze" or inputField != "":
-                    inputField = None
+                if inputField != "Gold":
+                    if inputField != "Silver":
+                        if inputField != "Bronze":
+                            if inputField != "":
+                                inputField = "!" # error message for wrong medal
             else:  # check on strings
                 special_characters = "\"!@#$%^&*()+?_=<>/\""
                 if any(c in special_characters for c in inputField):# check on special characters
@@ -146,11 +153,14 @@ class Window(Tk):
                 res, numQuery = query3(team, anno)
             else:
                 res, numQuery = query4(team, anno)
-        elif val == 4 or val == 6 or val == 13:
+        elif val == 4 or val == 6 or val == 13 or val == 14:
             evento = self.checkInput("Evento")
             anno = self.checkInput("Anno")
             citta = self.checkInput("Città")
             season = self.checkInput("Stagione")
+            if val == 14:
+                idEvento = self.checkInput("IDEvent")
+
             if evento is None:
                 errorText = "Inserisci un evento valido"
             elif anno is None:
@@ -164,8 +174,14 @@ class Window(Tk):
                     res, numQuery = query5(evento, anno, citta, season)
                 elif val == 6:
                     res, numQuery = query7(evento, anno, citta, season)
+                elif val == 13:
+                    #inserEvent(evento, anno, citta, season)
+                    pass
                 else:
-                    # query 14
+                    """if checkEvento(idEvento) is not None:                                
+                        upDateEvent(idEvento, evento, anno, citta, season)                      <--------DECOMMENTA
+                    else:
+                        errorText = "Evento non trovato nel database"""
                     pass
         elif val == 5:
             team = self.checkInput("Team")
@@ -194,7 +210,6 @@ class Window(Tk):
             else:
                 res, numQuery = query10()
         elif val == 10 or val == 11:
-            idAthlete = self.checkInput("ID")
             nome = self.checkInput("Nome")
             sesso = self.checkInput("Sesso")
             eta = self.checkInput("Età")
@@ -202,10 +217,18 @@ class Window(Tk):
             peso = self.checkInput("Peso")
             team = self.checkInput("Team")
             noc = self.checkInput("NOC")
+            idAthlete = None
+#lo setto nullo a prescindere, così quando si tratta di una modifica me lo trovo nelle righe qui sotto, altrimenti se è un inserimento, comunque nella query quando va a inserire la entry non considera l'ID e non fa niente se è nullo
+            if val == 11:
+                idAthlete = self.checkInput("ID")
+                if idAthlete is None:
+                    errorText = "Inserisci un ID corretto - L'ID deve essere numerico"
+                else:
+                    #check se esiste l'id nel db
+                    pass
+
             # show errors
-            if idAthlete is None:
-                errorText = "Inserisci un ID corretto - L'ID deve essere numerico"
-            elif nome is None:
+            if nome is None:
                 errorText = "Inserisci un nome corretto"
             elif eta is None:
                 errorText = "Inserisci un'età corretta"
@@ -217,17 +240,23 @@ class Window(Tk):
                 errorText = "Inserisci un team corretto"
             elif noc is None:
                 errorText = "Inserisci un NOC corretto - Il NOC deve essere di 3 caratteri"
+            else:
+                atleta = {"ID": idAthlete, "Name": nome, "Sex": sesso, "Age": eta, "Height": altezza, "Weight": peso, "NOC": noc, "Team": team}
 
             if val == 10:
-                #medaglia = self.checkInput("Medal")
+                medaglia = self.checkInput("Medal")
                 sport = self.checkInput("Sport")
                 idEvent = self.checkInput("IDEvent")
                 if sport is None:
                     errorText = "Inserisci uno sport corretto"
                 elif idEvent is None:
                     errorText = "Inserisci un id evento corretto - Deve iniziare per EV e contenere caratteri numerici"
+                elif medaglia == "!":
+                    errorText = "Inserisci una medaglia corretta - Gold/Silver/Bronze/null"
                 else:
-                    # check su id evento + esegui query
+                    """if checkEvento(idEvent) is not None:
+                        achievements = {"Medal": medaglia, "Sport": sport, "IDEvent": idEvent}                  <-----------DECOMMENTA
+                        insertAthlete(atleta, achievements)"""
                     pass
             elif val == 11:
                 # esegui query
@@ -255,10 +284,10 @@ class Window(Tk):
                 errorText = "Inserisci un ID corretto - L'ID deve essere numerico"
             elif idEvent is None:
                 errorText = "Inserisci un id evento corretto - Deve iniziare per EV e contenere caratteri numerici"
-                """elif medaglia is None:
-                errorText = "Inserisci una medaglia corretta - Deve essere nulla o Gold/Silver/Bronze"""
             elif sport is None:
                 errorText = "Inserisci uno sport corretto"
+            elif medaglia == "!":
+                errorText = "Inserisci una medaglia corretta - Gold/Silver/Bronze/null"
 
             if val == 16:
                 # query
@@ -271,7 +300,8 @@ class Window(Tk):
             self.labelError.config(text=errorText)
             self.labelError.grid(row=3, column=0, padx=1, pady=4)
         else:
-            self.showResults(res, numQuery)
+            if res is not None and numQuery is not None:
+                self.showResults(res, numQuery)
 
 
     def createLabelsAndEntries(self):
@@ -323,6 +353,7 @@ class Window(Tk):
         radiobtnM = Radiobutton(self.inputFrame, text="M", variable=self.radioVar,
                                 value="M", command=self.checkInput)
         radiobtnF = Radiobutton(self.inputFrame, text="F", variable=self.radioVar, value="F", command=self.checkInput)
+        self.radioVar.set("M")
 
         radiobtnTotal = Radiobutton(self.inputFrame, text="Total", variable=self.radioMedal,
                                     value="Total", command=self.checkInput)
@@ -332,6 +363,7 @@ class Window(Tk):
                                      value="Silver", command=self.checkInput)
         radiobtnBronze = Radiobutton(self.inputFrame, text="Bronze", variable=self.radioMedal,
                                      value="Bronze", command=self.checkInput)
+        self.radioMedal.set("Total")
 
         self.labelsAndEntries = {"Città": [labelCity, entryCity], "Sport": [labelSport, entrySport],
                                  "Team": [labelTeam, entryTeam], "Evento": [labelEvent, entryEvent],
@@ -383,7 +415,6 @@ class Window(Tk):
             self.tree.delete(item)
 
         self.tree.grid_remove()
-        #self.treeMedal.grid_remove()
 
     def menu_item_selected(self, *args):
         """ handle menu selected event """
@@ -398,12 +429,12 @@ class Window(Tk):
         elif val == 2 or val == 3:
             self.showFields("Team", 0)
             self.showFields("Anno", 1)
-        elif val == 4 or val == 6 or val == 13:
+        elif val == 4 or val == 6 or val == 13 or val == 14:
             self.showFields("Evento", 0)
             self.showFields("Città", 1)
             self.showFields("Anno", 2)
             self.showFields("Stagione", 3)
-            if val == 13:
+            if val == 14:
                 self.showFields("IDEvent", 4)
         elif val == 5:
             self.showFields("Team", 0)
@@ -416,7 +447,6 @@ class Window(Tk):
         elif val == 9:
             self.showFields("Quantità", 0)
         elif val == 10 or val == 11:
-            self.showFields("ID", 0)
             self.showFields("Nome", 1)
             self.showFields("Sesso", 2)
             self.showFields("Età", 3)
@@ -428,10 +458,10 @@ class Window(Tk):
                 self.showFields("Medal", 8)
                 self.showFields("Sport", 9)
                 self.showFields("IDEvent", 10)
+            else:
+                self.showFields("ID", 0)
         elif val == 12:
             self.showFields("ID", 0)
-        elif val == 14: # tutta la roba dell'evento ... forse?
-            self.showFields("", 0)
         elif val == 15:
             self.showFields("IDEvent", 0)
         elif val == 16 or val == 17:
