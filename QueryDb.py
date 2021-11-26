@@ -320,3 +320,99 @@ def ultimoAnno():
     result = db.event.find({}, {"Year": 1, "_id": 0}).sort("Year", -1).limit(1)
     for r in result:
         return int(r["Year"])
+
+
+def insertEvent(eventName, year, city, season):
+    """print("Inserisci i dati del nuovo evento")
+    eventName = input("Nome evento: ")
+    year = int(input("Anno: "))
+    city = input("Citta: ")
+    season = input("Sessione: ")
+"""
+    idEvent = findMaxIDEvent() + 1
+    print(idEvent)
+    db.event.insert_one({"EventName": eventName, "Year": year, "City": city, "Season": season, "IDEvent": "EV"+str(idEvent)})
+
+
+def findMaxIDEvent():
+    idEvent = db.event.find({}, {"IDEvent": 1, "_id": 0}).sort("IDEvent", -1).limit(1)
+    for doc in idEvent:
+        return int(((doc["IDEvent"])[2:]))+1
+
+
+def upDateEvent(idEvent, eventName, year, city, season):
+    db.event.update_one({"IDEvent": idEvent}, {"$set": {"EventName": eventName, "Year": year, "City": city, "Season": season}})
+
+
+def deleteEvent(idEvento):
+    listaMedaglie = []
+    listaAtleti = []
+
+    resultQuery = db.athlete.find({"Achievements.IDEvent": idEvento}, {"_id": 0})
+    for res in resultQuery:
+        for medal in res["Achievements"]:
+            if len(res["Achievements"]) == 1:
+                listaAtleti.append(res["ID"])
+            else:
+                if medal["IDEvent"] == idEvento:
+                    diz = {"ID": res["ID"], "IDEvent": medal["IDEvent"]}
+                    listaMedaglie.append(diz)
+
+        for atleti in listaAtleti:
+            deleteAthlete(atleti)
+
+        for medaglie in listaMedaglie:
+            deleteAchievement(medaglie["ID"], medaglie["IDEvent"])
+
+    db.event.delete_one({"IDEvent": idEvento})
+
+
+def findMaxIDAthlete():
+    idAthlete = db.athlete.find({}, {"ID": 1, "_id": 0}).sort("ID", -1).limit(1)
+    for doc in idAthlete:
+        return int(doc["ID"])
+
+
+def deleteAchievement(idAthlete, idEvent):
+    db.athlete.update({"ID": idAthlete, "Achievements.IDEvent": idEvent}, {"$pull": {"Achievements": {"IDEvent": idEvent}}})
+
+
+def insertAchievement(idAthlete, achievements):
+    db.athlete.update_many({"ID": idAthlete}, {"$push": {"Achievements": achievements}})
+
+
+def upDateAchievements(idAthlete, medaglia, sport, idEvento):
+    db.athlete.update_one(
+        {"ID": idAthlete, "Achievements.IDEvent": idEvento},
+        {
+            "$set": {
+                "Achievements.$.Sport": sport,
+                "Achievements.$.Medal": medaglia,
+                "Achievements.$.IDEvent": idEvento
+            }
+        })
+
+
+def checkEvento(idEvento):
+    return db.event.find_one({"IDEvent": idEvento}, {"IDEvent": 1, "_id": 0})
+
+
+def upDateAthlete(idAthlete, name, sex, age, height, weight, team, noc):
+    db.athlete.update_one({"ID": id}, {"$set": {"ID": idAthlete, "Name": name, "Sex": sex, "Age": age, "Height": height, "Weight": weight, "Team": team, "NOC": noc}})
+
+
+def insertAthlete(athlete, achievements):
+    idAthlete = findMaxIDAthlete() + 1
+    db.athlete.insert_one({"ID": idAthlete, "Name": athlete["Name"], "Sex": athlete["Sex"], "Age": athlete["Age"],
+         "Height": athlete["Height"], "Weight": athlete["Weight"], "Team": athlete["Team"], "NOC": athlete["NOC"]})
+    if achievements is not None:
+        db.athlete.update_many({"ID": idAthlete}, {"$push": {"Achievements": achievements}})
+
+
+def checkIdAthlete(idAthlete):
+    found = db.athlete.find_one({"ID": idAthlete}, {"IDEvent": 1, "_id": 0})
+    return found
+
+
+def deleteAthlete(idAthlete):
+    db.athlete.delete_one({"ID": idAthlete})

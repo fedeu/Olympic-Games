@@ -72,18 +72,15 @@ class Window(Tk):
                 inputField = self.radioMedal.get()
         else:
             inputField = entry.get()
-            if key == "Anno" or key == "Anno1" or key == "Anno2" or key == "Quantità" or key == "Età":  # check on integers
+            if key == "Anno" or key == "Anno1" or key == "Anno2" or key == "Quantità" or key == "Età" or key == "ID":  # check on integers
                 try:
                     inputField = int(inputField)
                 except:
                     inputField = None
             elif key == "Peso" or key == "Altezza": # check on float
-                print(inputField)
                 try:
                     inputField = float(inputField)
-                    print(inputField)
                 except:
-                    print("nun ce l'ho fatta")
                     inputField = None
             elif key == "Stagione":
                 if inputField != "Winter":
@@ -175,14 +172,12 @@ class Window(Tk):
                 elif val == 6:
                     res, numQuery = query7(evento, anno, citta, season)
                 elif val == 13:
-                    #inserEvent(evento, anno, citta, season)
-                    pass
+                    insertEvent(evento, anno, citta, season)
                 else:
-                    """if checkEvento(idEvento) is not None:                                
-                        upDateEvent(idEvento, evento, anno, citta, season)                      <--------DECOMMENTA
+                    if checkEvento(idEvento) is not None:
+                        upDateEvent(idEvento, evento, anno, citta, season)
                     else:
-                        errorText = "Evento non trovato nel database"""
-                    pass
+                        errorText = "Evento non trovato nel database"
         elif val == 5:
             team = self.checkInput("Team")
             if team is None:
@@ -254,18 +249,22 @@ class Window(Tk):
                 elif medaglia == "!":
                     errorText = "Inserisci una medaglia corretta - Gold/Silver/Bronze/null"
                 else:
-                    """if checkEvento(idEvent) is not None:
-                        achievements = {"Medal": medaglia, "Sport": sport, "IDEvent": idEvent}                  <-----------DECOMMENTA
-                        insertAthlete(atleta, achievements)"""
-                    pass
+                    if checkEvento(idEvent) is not None:
+                        achievements = {"Medal": medaglia, "Sport": sport, "IDEvent": idEvent}
+                        insertAthlete(atleta, achievements)
             elif val == 11:
-                # esegui query
-                pass
+                if checkIdAthlete(idAthlete) is None:
+                    errorText = "Inserisci un id atleta corretto - ID non presente nel db"
+                else:
+                    upDateAthlete(idAthlete, nome, sesso, eta, altezza, peso, team, noc)
         elif val == 12:
-            id = self.checkInput("ID")
-            if id is None:
+            idAthlete = self.checkInput("ID")
+            if idAthlete is None:
                 errorText = "Inserisci un ID corretto - L'ID deve essere numerico"
-            # query
+            elif checkIdAthlete(idAthlete) is None:
+                errorText = "Inserisci un ID corretto - ID non presente nel db"
+            else:
+                deleteAthlete(idAthlete)
         elif val == 14:
             pass
         elif val == 15:
@@ -273,8 +272,10 @@ class Window(Tk):
             if idEvent is None:
                 errorText = "Inserisci un id evento corretto - Deve iniziare per EV e contenere caratteri numerici"
             else:
-                # query
-                pass
+                if checkEvento(idEvent) is None:
+                    errorText = "Inserisci un id evento corretto - L'evento non è presente sul db"
+                else:
+                    deleteEvent(idEvent)
         elif val == 16 or val == 17:
             idAthlete = self.checkInput("ID")
             medaglia = self.checkInput("Medal")
