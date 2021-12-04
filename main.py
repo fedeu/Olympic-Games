@@ -2,6 +2,8 @@ from tkinter import *
 from tkinter.ttk import *
 import pymongo.cursor
 from QueryDb import *
+from matplotlib.backends.backend_tkagg import FigureCanvasTkAgg
+
 
 queries = ["Mostra gli eventi che ha ospitato una data città",
            "Visualizza altezza, peso ed età degli atleti che hanno vinto una medaglia per una data disciplina",
@@ -42,8 +44,6 @@ class Window(Tk):
 
         self.columnconfigure(0, weight=1)
         self.rowconfigure(1, weight=1)
-        #self.inputFrame.rowconfigure(0, weight=1)
-        #self.inputFrame.columnconfigure(0, weight=1)
         self.outputFrame.rowconfigure(0, weight=1)
         self.outputFrame.columnconfigure(0, weight=1)
 
@@ -57,8 +57,9 @@ class Window(Tk):
 
         # Create widgets and variables for output area
         self.tree = Treeview(self.outputFrame)
-        """self.treeMedal = Treeview(self.outputFrame)
-        self.labelNotFound = Label(self.outputFrame, text="")"""
+        self.labelNotFound = Label(self.outputFrame, text="")
+        self.canvas = None
+
 
     def checkInput(self, key):
         """Checks if input is in the correct format. Returns None if not"""
@@ -76,6 +77,8 @@ class Window(Tk):
                 try:
                     inputField = int(inputField)
                 except:
+                    inputField = None
+                if key == "Quantità" and inputField < 1:
                     inputField = None
             elif key == "Peso" or key == "Altezza": # check on float
                 try:
@@ -114,16 +117,13 @@ class Window(Tk):
 
 
     def callQuery(self):
-        if self.tree.grid_info() is not None:
-            for item in self.tree.get_children():
-                self.tree.delete(item)
-            self.tree.grid_remove()
-        """if self.treeMedal.grid_info() is not None:
-            self.treeMedal.grid_remove()"""
+        for item in self.tree.get_children():
+            self.tree.delete(item)
+        self.tree.pack_forget()
         errorText = ""
         val = int(self.selected_query.get())
         res = None
-        numQuery = int()
+        numQuery = 0
         if val == 0:
             citta = self.checkInput("Città")
             if citta is not None:
@@ -194,16 +194,16 @@ class Window(Tk):
             elif anno2 is None:
                 errorText = "Inserisci un anno valido come secondo parametro"
             else:
-                res = query8(anno1, anno2, medaglia)
+                res, numQuery = query8(anno1, anno2, medaglia)
         elif val == 8:
             sesso = self.checkInput("Sesso")
-            res = query9(sesso)
+            res, numQuery = query9(sesso)
         elif val == 9:
             quant = self.checkInput("Quantità")
             if quant is None:
-                errorText = "Inserisci una quantità valida"
+                errorText = "Inserisci una quantità numerica e maggiore di 0"
             else:
-                res, numQuery = query10()
+                res, numQuery = query10(quant)
         elif val == 10 or val == 11:
             nome = self.checkInput("Nome")
             sesso = self.checkInput("Sesso")
@@ -219,9 +219,8 @@ class Window(Tk):
                 if idAthlete is None:
                     errorText = "Inserisci un ID corretto - L'ID deve essere numerico"
                 else:
-                    #check se esiste l'id nel db
-                    pass
-
+                    if checkIdAthlete(idAthlete) is None:
+                        errorText = "Inserisci un ID corretto - ID non trovato nel db"
             # show errors
             if nome is None:
                 errorText = "Inserisci un nome corretto"
@@ -249,7 +248,11 @@ class Window(Tk):
                 elif medaglia == "!":
                     errorText = "Inserisci una medaglia corretta - Gold/Silver/Bronze/null"
                 else:
-                    if checkEvento(idEvent) is not None:
+                    if medaglia == "":
+                        medaglia = None
+                    if checkEvento(idEvent) is None:
+                        errorText = "Inserisci un id evento corretto - ID non trovato nel db"
+                    else:
                         achievements = {"Medal": medaglia, "Sport": sport, "IDEvent": idEvent}
                         insertAthlete(atleta, achievements)
             elif val == 11:
@@ -290,19 +293,39 @@ class Window(Tk):
             elif medaglia == "!":
                 errorText = "Inserisci una medaglia corretta - Gold/Silver/Bronze/null"
 
-            if val == 16:
-                # query
-                pass
+            if checkEvento(idEvent) is not None:
+                if medaglia == "":
+                    medaglia = None
+                achievement = {"Medal": medaglia, "Sport": sport, "IDEvent": idEvent}
+                if val == 16:
+                    insertAchievement(idAthlete, achievement)
+                else:
+                    updateAchievements(idAthlete, achievement)
             else:
-                #altra query
-                pass
+                errorText = "Inserisci un id evento corretto - ID non trovato"
+        elif val == 18:
+            idAthlete = self.checkInput("ID")
+            idEvent = self.checkInput("IDEvent")
+            if idAthlete is None:
+                errorText = "Inserisci un ID corretto - L'ID deve essere numerico"
+            elif idEvent is None:
+                errorText = "Inserisci un id evento corretto - Deve iniziare per EV e contenere caratteri numerici"
+
+            if checkEvento(idEvent) is not None:
+                deleteAchievement(idAthlete, idEvent)
+            else:
+                errorText = "Inserisci un id evento corretto - Deve iniziare per EV e contenere caratteri numerici"
 
         if errorText != "":
             self.labelError.config(text=errorText)
             self.labelError.grid(row=3, column=0, padx=1, pady=4)
-        else:
-            if res is not None and numQuery is not None:
-                self.showResults(res, numQuery)
+        elif res is not None and numQuery != 0:
+            self.showResults(res, numQuery)
+
+    def displayPlot(self, fig):
+        self.canvas = FigureCanvasTkAgg(fig, master=self.outputFrame)
+        self.canvas.draw()
+        self.canvas.get_tk_widget().pack(fill="both", expand=True)
 
 
     def createLabelsAndEntries(self):
@@ -398,6 +421,7 @@ class Window(Tk):
         entry.grid(row=riga, column=1, padx=2, pady=2)
         entry.focus_set()
         self.subtmitbtn.grid(row=2, column=0, pady=5)
+        self.bind('<Return>', lambda event: self.callQuery())
 
     def hideFields(self):
         """Hide already created fields to place the new ones"""
@@ -411,11 +435,14 @@ class Window(Tk):
             item[0].grid_remove()
             item[1].grid_remove()
         self.labelError.grid_remove()
-        #self.labelNotFound.grid_remove()
+        self.labelNotFound.pack_forget()
         for item in self.tree.get_children():
             self.tree.delete(item)
+        self.tree.pack_forget()
+        if self.canvas is not None:
+            self.canvas.get_tk_widget().pack_forget()
+            self.outputFrame.grid_remove()
 
-        self.tree.grid_remove()
 
     def menu_item_selected(self, *args):
         """ handle menu selected event """
@@ -475,19 +502,17 @@ class Window(Tk):
             self.showFields("IDEvent", 1)
 
 
-    def showNoResultLabel(self):
-        self.labelNotFound.config(text="Nessun risultato trovato")
-        self.labelNotFound.grid(row=0, column=0)
-
-
-    def showResults(self, results, numQuery): # MANCANO LA QUERY 9 E QUELLE COI GRAFICI
+    def showResults(self, results, numQuery):
         """Arrange widgets in the output area"""
-        """if self.labelNotFound.grid_info() is not None:
-            self.labelNotFound.grid_remove()"""
+        self.labelNotFound.pack_forget()
         self.outputFrame.grid(row=4, columnspan=4, padx=10, pady=10, sticky=E+W+N+S)
-        # Check on length of results: if not 0 display table
+        if numQuery == 6 or numQuery == 8:
+            self.displayPlot(results)
+            return
+        # Check on length of results: if 0 show label for no result
         if (type(results) is list and len(results) == 0) or (type(results) is pymongo.cursor.Cursor and results.count() == 0):
-            self.showNoResultLabel()
+            self.labelNotFound.config(text="Nessun risultato trovato")
+            self.labelNotFound.pack(fill="both", expand=True)
         else:
             # Setting columns for the result table
             if numQuery == 4:
@@ -503,9 +528,7 @@ class Window(Tk):
                 del cols[8]
                 del cols[7]
                 del cols[0]
-                medals = []
             cols = tuple(cols)
-
             self.tree.config(col=cols, show="headings")
             for col in cols:
                 #if col != "Achievements" or (col == "Achievements" and numQuery == 2):
@@ -516,14 +539,13 @@ class Window(Tk):
                 elif col == "IDEvent":
                     width = 100
                 elif col == "Achievements":
-                    minWidth = 50
-                    width = 300
+                    minWidth = 80
+                    width = 320
                 elif col == "EventName":
                     width = 250
                 else:
                     width = 150
                 self.tree.column(col, minwidth=minWidth, width=width)
-
             # Setting the treeview to display results
             if numQuery == 4:
                 self.tree.insert("", "end", values=(results[0], results[1]))
@@ -536,53 +558,30 @@ class Window(Tk):
             else:
                 for result in results:
                     allMedals = []
-                    if numQuery == 3 or numQuery == 5: # Getting medal data to create second table of results
-                        for medal in result["Achievements"]:
-                            medal["IDAthlete"] = result["ID"]
-                            medals.append(medal)
                     myValues = []
                     for col in cols:
                         if col != "Achievements":
-                            if col == "Age": # convert age from float to int
+                            if col == "Age" and result[col] is not None: # convert age from float to int. some athletes have age null
                                 result[col] = int(result[col])
                             myValues.append(result[col])
-                        elif col == "Achievements": #and numQuery == 2:
+                        elif col == "Achievements":
                             for medal in result["Achievements"]: # Format medals
                                 allMedals.append(medal["Medal"]+", "+medal["Sport"])
-                                """myValues.append("<"+medal["Medal"]+", "+medal["Sport"]+">")
-                                print(result["Name"], myValues)"""
                             myValues.append(allMedals)
                     self.tree.insert("", "end", values=tuple(myValues))
-
             # Show results
-            #self.tree.grid(row=1, columnspan=3, pady=2)
             self.tree.pack(fill="both", expand=True)
-
-            """if numQuery == 3 or numQuery == 5: # Create second table to display medals in detail
-                cols = tuple(list(medals[0].keys()))
-                self.treeMedal.config(col=cols, show="headings")
-                for col in cols:
-                    self.treeMedal.heading(col, text=col)
-
-                for medal in medals:
-                    myValues = []
-                    for col in cols:
-                        myValues.append(medal[col])
-                    self.treeMedal.insert("", "end", values=tuple(myValues))
-                self.treeMedal.grid(row=2, column=0, pady=2)"""
 
 
     def create_menu_button(self):
         """ create a menu button for query selecting"""
         menu = Menu(self.menu_button, tearoff=False)
-
         numbers = [x for x in range(0, 19)]  # indexes for queries
         for number in numbers:
             menu.add_radiobutton(
                 label=str(number + 1) + ". " + queries[number],
                 value=number,
                 variable=self.selected_query)
-
         # associate menu with the Menubutton
         self.menu_button["menu"] = menu
         self.menu_button.grid(row=0, column=0, padx=10, pady=10)
