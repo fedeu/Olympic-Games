@@ -4,7 +4,7 @@ import csv
 from pymongo import MongoClient
 
 dbName = "OlympicGames"
-clientUrl = ""
+clientUrl = "*"
 client = MongoClient(clientUrl)
 db = client[dbName]
 
@@ -21,7 +21,7 @@ def popolaDB(csvPath, collectionName):
 
 def inizializzaDB():
     # GESTIONE CSV per le collection ATHLETE, EVENT, ACHIEVEMENT
-    rootPath = "C:/Users/feder/Documents/Università/Magistrale/Basi di dati 2/progetto/dataset/"
+    rootPath = "./dataset/"
     dataAE = pd.read_csv(rootPath + "athlete_events.csv")
 
     dataAE.drop("Games", inplace=True, axis=1)  # Cancella la colonna 'Games'

@@ -49,39 +49,27 @@ def query3(team, year):  # -- Mostra le medaglie vinte da un team (nazione) in u
         if key not in result.keys():
             result[key] = val
             final.append(val)
-
-    """for i in final:
-        print(i)"""
     return final, 3
 
 
 def query4(team, year):  # -- Calcola quante medaglie sono state vinte da una data nazione nelle 2 diverse stagioni per uno specifico anno
-    summerMedals = 0
-    winterMedals = 0
-    summerEvents = db.event.find({"Year": year, "Season": "Summer"}, {"_id": 0, "IDEvent": 1})
-    winterEvents = db.event.find({"Year": year, "Season": "Winter"}, {"_id": 0, "IDEvent": 1})
-    queries = []
-
-    for event in summerEvents:
-        result = db.athlete.find(
-            {"Team": team, "Achievements.IDEvent": event["IDEvent"], "Achievements.Medal": {"$ne": None}})
-        queries.append(result)
-
-    for queryRes in queries:
-        summerMedals += queryRes.count()
-
-    queries = []
-    for event in winterEvents:
-        result = db.athlete.find(
-            {"Team": team, "Achievements.IDEvent": event["IDEvent"], "Achievements.Medal": {"$ne": None}})
-        queries.append(result)
-
-    for queryRes in queries:
-        winterMedals += queryRes.count()
-    return [summerMedals, winterMedals], 4
+    seasons = ["Summer", "Winter"]
+    medals = []
+    for season in seasons:
+        queries = []
+        counter = 0
+        events = db.event.find({"Year": year, "Season": season}, {"_id": 0, "IDEvent": 1})
+        for event in events:
+            result = db.athlete.find(
+                {"Team": team, "Achievements.IDEvent": event["IDEvent"], "Achievements.Medal": {"$ne": None}})
+            queries.append(result)
+        for queryRes in queries:
+            counter += queryRes.count()
+        medals.append(counter)
+    return [medals[0], medals[1]], 4
 
 
-def query5(nomeEvento, annoEvento, cittàEvento, season): #-- Mostra tutte le medaglie vinte in un dato evento e gli atleti che le hanno vinte;
+def query5(nomeEvento, annoEvento, cittàEvento, season): # -- Mostra tutte le medaglie vinte in un dato evento e gli atleti che le hanno vinte;
     result = db.event.aggregate([
         {"$match": {
             "EventName": nomeEvento,
@@ -108,10 +96,8 @@ def query5(nomeEvento, annoEvento, cittàEvento, season): #-- Mostra tutte le me
                     newMedaglia.append(med)
             temp = item
             temp["Achievements"] = newMedaglia
-            #finalResult.append(temp)
             if temp["Achievements"]:  # verifico se la lista Achievements è vuota
                 finalResult[temp["_id"]] = temp
-                #print(temp)
 
     result = {}
     final = []
@@ -119,10 +105,6 @@ def query5(nomeEvento, annoEvento, cittàEvento, season): #-- Mostra tutte le me
         if key not in result.keys():
             result[key] = val
             final.append(val)
-
-    """for i in final:
-        print(i)"""
-
     return final, 5
 
 
@@ -214,7 +196,6 @@ def query8(annoInf, annoSup, tipoGrafico):  # -- Elabora un istogramma delle 5 n
 
         }}
     ])
-
     resultMap = {}
     for r in result:
         for item in r["lista"]:
@@ -243,7 +224,6 @@ def query8(annoInf, annoSup, tipoGrafico):  # -- Elabora un istogramma delle 5 n
                             resultMap[item["Team"]][2] += 1
 
     y = 4
-
     if tipoGrafico == "Gold":
         y = 0
         z = "d'oro"
@@ -321,9 +301,29 @@ def query9(sex):  # -- Riporta per ogni anno il numero di partecipazioni di atle
     return yearMap, 9
 
 
-def query10(med):  # Riporta gli atleti che hanno vinto almeno tot medaglie
-    queryResult = db.athlete.find({"Achievements": {"$size": med}, "Achievements.Medal": {"$ne": None}}, {"_id": 0, "NOC": 0})
-    return queryResult, 10
+def query10(numMed):  # -- Riporta gli atleti che hanno vinto almeno tot medaglie
+    queryResult = db.athlete.find()
+    finalResult = {}
+    for item in queryResult:
+        newMedaglia = []
+        temp = item
+        for med in item["Achievements"]:
+            count = 0
+            if med["Medal"] is not None:
+                count += 1
+                newMedaglia.append(med)
+        if count >= numMed:
+            temp["Achievements"] = newMedaglia
+            if temp["Achievements"]:  # verifico se la lista Achievements non è vuota
+                finalResult[temp["_id"]] = temp
+
+    result = {}
+    final = []
+    for key, val in finalResult.items():
+        if key not in result.keys():
+            result[key] = val
+            final.append(val)
+    return final, 10
 
 
 def ultimoAnno():

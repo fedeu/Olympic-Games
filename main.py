@@ -2,6 +2,7 @@ from tkinter import *
 from tkinter.ttk import *
 import pymongo.cursor
 from QueryDb import *
+from load_db import checkInizializza
 from matplotlib.backends.backend_tkagg import FigureCanvasTkAgg
 
 
@@ -24,13 +25,18 @@ class Window(Tk):
 
     def __init__(self):
         super().__init__()
-        self.configure(background='#FFEFD5')
+        # Just simply import the sun-valley.tcl file
+        self.tk.call("source", "./Sun-Valley-ttk-theme-master/sun-valley.tcl")
+
+        # Then set the theme you want with the set_theme procedure
+        self.tk.call("set_theme", "dark")
+        self.configure(background='#4D9D8B')
         self.geometry('1250x750')
         self.title('Olympic History')
 
         # style for widgets
         styleError = Style()
-        styleError.configure("BW.TLabel", foreground="red")
+        styleError.configure("BW.TLabel", foreground="red", background="#4D9D8B")
 
         # Menubutton
         self.menu_button = Menubutton(self, text='Seleziona una query', width=100)
@@ -319,8 +325,10 @@ class Window(Tk):
         if errorText != "":
             self.labelError.config(text=errorText)
             self.labelError.grid(row=3, column=0, padx=1, pady=4)
-        elif res is not None and numQuery != 0:
-            self.showResults(res, numQuery)
+        else:
+            self.labelError.grid_remove()
+            if res is not None and numQuery != 0:
+                self.showResults(res, numQuery)
 
     def displayPlot(self, fig):
         self.canvas = FigureCanvasTkAgg(fig, master=self.outputFrame)
@@ -588,5 +596,6 @@ class Window(Tk):
 
 
 if __name__ == "__main__":
+    #checkInizializza()
     window = Window()
     window.mainloop()
