@@ -7,3 +7,4 @@ Dataset di riferimento: https://www.kaggle.com/heesoo37/120-years-of-olympic-his
 - load_db.py: se il database OlympicGames non esiste, viene creato
 - QueryDb.py: query che è possibile sottoporre al database
 - main.py: interfaccia grafica
+- Sun-Valley-ttk-theme-master/: contiene il tema per l'interfaccia grafica
