@@ -25,7 +25,7 @@ class Window(Tk):
 
     def __init__(self):
         super().__init__()
-        # Just simply import the sun-valley.tcl file
+        # Import the sun-valley.tcl file to use theme
         self.tk.call("source", "./Sun-Valley-ttk-theme-master/sun-valley.tcl")
 
         # Then set the theme you want with the set_theme procedure
@@ -34,7 +34,7 @@ class Window(Tk):
         self.geometry('1250x750')
         self.title('Olympic History')
 
-        # style for widgets
+        # style for widgets: label error and label not found
         styleError = Style()
         styleError.configure("BW.TLabel", foreground="red", background="#4D9D8B")
 
@@ -329,6 +329,7 @@ class Window(Tk):
             self.labelError.grid_remove()
             if res is not None and numQuery != 0:
                 self.showResults(res, numQuery)
+
 
     def displayPlot(self, fig):
         self.canvas = FigureCanvasTkAgg(fig, master=self.outputFrame)

@@ -98,7 +98,6 @@ def query5(nomeEvento, annoEvento, cittàEvento, season): # -- Mostra tutte le m
             temp["Achievements"] = newMedaglia
             if temp["Achievements"]:  # verifico se la lista Achievements è vuota
                 finalResult[temp["_id"]] = temp
-
     result = {}
     final = []
     for key, val in finalResult.items():
@@ -142,13 +141,11 @@ def query6(nazione):  # -- Elabora un grafico a torta degli sport in cui una dat
                                       colors=colors,
                                       wedgeprops=wp,
                                       textprops=dict(color="black"))
-
-    # Adding legend
+    """# Adding legend
     ax.legend(wedges, sports,
               title="Sport",
               loc="center left",
-              bbox_to_anchor=(1, 0, 0.5, 1))
-
+              bbox_to_anchor=(1, 0, 0.5, 1))"""
     plt.setp(autotexts, size=6)
     ax.set_title(nazione)
     return fig, 6
@@ -186,14 +183,12 @@ def query8(annoInf, annoSup, tipoGrafico):  # -- Elabora un istogramma delle 5 n
     result = db.event.aggregate([
         {"$match": {
             "Year": {"$gte": annoInf, "$lte": annoSup}
-            # "Year": {"$lte": annoSup}
         }},
         {"$lookup": {
             "from": "athlete",
             "localField": "IDEvent",
             "foreignField": "Achievements.IDEvent",
             "as": "lista"
-
         }}
     ])
     resultMap = {}
@@ -202,7 +197,6 @@ def query8(annoInf, annoSup, tipoGrafico):  # -- Elabora un istogramma delle 5 n
             if item["Team"] not in resultMap.keys():
                 lisMedal = [0, 0, 0, 0]
                 resultMap[item["Team"]] = lisMedal
-
                 for medal in item["Achievements"]:
                     if medal["Medal"] is not None:
                         resultMap[item["Team"]][3] += 1
@@ -216,13 +210,13 @@ def query8(annoInf, annoSup, tipoGrafico):  # -- Elabora un istogramma delle 5 n
                 for medal in item["Achievements"]:
                     if medal["Medal"] is not None:
                         resultMap[item["Team"]][3] += 1
+                        # print("Anno ", item["Year"])
                         if medal["Medal"] == "Gold":
                             resultMap[item["Team"]][0] += 1
                         elif medal["Medal"] == "Silver":
                             resultMap[item["Team"]][1] += 1
                         elif medal["Medal"] == "Bronze":
                             resultMap[item["Team"]][2] += 1
-
     y = 4
     if tipoGrafico == "Gold":
         y = 0
@@ -245,34 +239,19 @@ def query8(annoInf, annoSup, tipoGrafico):  # -- Elabora un istogramma delle 5 n
         medaglie = []
         nazioni = []
         i = 0
+        app = {}
         for key, value in mapOrder:
             if i < 6:
                 medaglie.append(value[y])
                 nazioni.append(key)
+                app[key] = value
                 i += 1
-        # GENERO L'ISTOGRAMMA - prova fede
-        fig = Figure(figsize=(10, 7))
-        a = fig.add_subplot(111)
-
-        a.scatter(len(nazioni), len(medaglie))
-        a.plot(nazioni, medaglie)
-
-        a.set_title("Nazioni che hanno vinto più medaglie " + z + " dal " + str(annoInf) + " al " + str(annoSup))
-        a.set_xlabel("Nazioni")
-        a.set_ylabel("# Medaglie vinte")
-        a.set_bar(range(len(medaglie)), medaglie, align='center', edgecolor="black")
-        a.set_xticks(range(len(nazioni)), nazioni)
-
-        """
-        # PARTE GIGI
-        plt.style.use('ggplot')
-        plt.title("Nazioni che hanno vinto più medaglie " + z + " dal " + str(annoInf) + " al " + str(annoSup))
-        plt.bar(range(len(medaglie)), medaglie, align='center', edgecolor="black")
-        plt.xlabel('Nazioni')
-        plt.ylabel('# Medaglie vinte')
+        # GENERO L'ISTOGRAMMA
+        fig, ax = plt.subplots()
+        ax.bar(range(len(medaglie)), medaglie)
+        ax.set(title="Nazioni che hanno vinto più medaglie " + z + " dal " + str(annoInf) + " al " + str(annoSup),
+               ylabel='# Medaglie vinte', xlabel='Nazioni')
         plt.xticks(range(len(nazioni)), nazioni)
-        #plt.show()"""
-
         return fig, 8
 
 
@@ -288,7 +267,6 @@ def query9(sex):  # -- Riporta per ogni anno il numero di partecipazioni di atle
             "as": "participation"
         }}
     ])
-
     yearMap = {}
     for result in queryResult:
         for part in result["participation"]:
@@ -301,28 +279,40 @@ def query9(sex):  # -- Riporta per ogni anno il numero di partecipazioni di atle
     return yearMap, 9
 
 
-def query10(numMed):  # -- Riporta gli atleti che hanno vinto almeno tot medaglie
+def query10(numMed):  # Riporta gli atleti che hanno vinto almeno tot medaglie
     queryResult = db.athlete.find()
     finalResult = {}
     for item in queryResult:
         newMedaglia = []
         temp = item
         for med in item["Achievements"]:
-            count = 0
             if med["Medal"] is not None:
-                count += 1
                 newMedaglia.append(med)
-        if count >= numMed:
             temp["Achievements"] = newMedaglia
-            if temp["Achievements"]:  # verifico se la lista Achievements non è vuota
-                finalResult[temp["_id"]] = temp
-
-    result = {}
+        if temp["Achievements"]:  # verifico se la lista Achievements non è vuota
+            if temp["ID"] in finalResult:
+                elemInDict = finalResult.get(temp["ID"])
+                newMedaglia2 = elemInDict["Achievements"] + newMedaglia
+                temp["Achievements"] = newMedaglia2
+                finalResult[temp["ID"]] = temp
+            else:
+                finalResult[temp["ID"]] = temp
     final = []
-    for key, val in finalResult.items():
-        if key not in result.keys():
-            result[key] = val
-            final.append(val)
+    for kay, val in finalResult.items():
+        count = 0
+        for med in val["Achievements"]:
+            count += 1
+        app = val
+        if count >= numMed:
+            del app["_id"]
+            del app["Age"]
+            del app["Weight"]
+            del app["Height"]
+            medal = app["Achievements"]
+            del app["Achievements"]
+            app["NumMedWin"] = count
+            app["Achievements"] = medal
+            final.append(app)
     return final, 10
 
 
@@ -418,8 +408,7 @@ def deleteAchievement(idAthlete, idEvent):
 def updateAchievements(idAthlete, achievement):
     db.athlete.update_one(
         {"ID": idAthlete, "Achievements.IDEvent": achievement["IDEvent"]},
-        {
-            "$set": {
+        {"$set": {
                 "Achievements.$.Sport": achievement["Sport"],
                 "Achievements.$.Medal": achievement["Medal"],
                 "Achievements.$.IDEvent": achievement["IDEvent"]
