@@ -12,7 +12,7 @@ queries = ["Mostra gli eventi che ha ospitato una data città",
            "Calcola quante medaglie sono state vinte da una data nazione nelle 2 diverse stagioni per uno specifico anno",
            "Mostra tutte le medaglie vinte in un dato evento e gli atleti che le hanno vinte",
            "Elabora un grafico a torta degli sport in cui una data nazione va meglio",
-           "Mostra il totale delle medaglie attinenti a un dato evento per ogni nazione",
+           "Mostra le nazioni vincitrici di una data competizione",
            "Elabora un istogramma delle 5 nazioni che hanno vinto più medaglie in un dato intervallo di anni",
            "Per ogni anno riporta il numero di partecipazioni di atleti di un dato sesso",
            "Riporta gli atleti che hanno vinto almeno una certa quantità di medaglie",
@@ -92,28 +92,20 @@ class Window(Tk):
                 except:
                     inputField = None
             elif key == "Stagione":
-                if inputField != "Winter":
-                    if inputField != "Summer":
-                        inputField = None
-            elif key == "IDEvent":
-                if len(inputField) > 3:
-                    if inputField[:2] != "EV":
-                        inputField = None
-                else:
+                if inputField != "Winter" and inputField != "Summer":
                     inputField = None
-            elif key == "Medal":
-                if inputField != "Gold":
-                    if inputField != "Silver":
-                        if inputField != "Bronze":
-                            if inputField != "":
-                                inputField = "!" # error message for wrong medal
+            elif key == "IDEvent":
+                if len(inputField) > 3 and inputField[:2] != "EV":
+                    inputField = None
+            elif key == "Medal" and inputField != "Gold" and inputField != "Silver" and inputField != "Bronze" and inputField != "":
+                inputField = "!" # error message for wrong medal
             else:  # check on strings
                 special_characters = "\"!@#$%^&*()+?_=<>/\""
                 if any(c in special_characters for c in inputField):# check on special characters
                     inputField = None
                 elif all(c in " " for c in inputField): # check on string full of blank spaces
                     inputField = None
-                if inputField is not None and (key != "Sport" or key != "Evento"):  # check on numbers
+                if  inputField is not None and key != "Sport" and key != "Evento":  # check on numbers
                     numbers = "0123456789"
                     if any(c in numbers for c in inputField):
                         inputField = None
@@ -123,6 +115,7 @@ class Window(Tk):
 
 
     def callQuery(self):
+        """Get value from menu and query the db"""
         for item in self.tree.get_children():
             self.tree.delete(item)
         self.tree.pack_forget()
@@ -332,12 +325,14 @@ class Window(Tk):
 
 
     def displayPlot(self, fig):
+        """Used by query 6 and 8 to display histogram and pie chart"""
         self.canvas = FigureCanvasTkAgg(fig, master=self.outputFrame)
         self.canvas.draw()
         self.canvas.get_tk_widget().pack(fill="both", expand=True)
 
 
     def createLabelsAndEntries(self):
+        """Create widgets and a dictionary to group them"""
         # ATHLETE
         labelID = Label(self.inputFrame, text="ID")
         labelAthleteName = Label(self.inputFrame, text="Nome")
@@ -519,7 +514,7 @@ class Window(Tk):
             self.displayPlot(results)
             return
         # Check on length of results: if 0 show label for no result
-        if (type(results) is list and len(results) == 0) or (type(results) is pymongo.cursor.Cursor and results.count() == 0):
+        if (type(results) is list and len(results) == 0) or (type(results) is pymongo.cursor.Cursor and results.count() == 0) or (type(results) is dict and len(results.keys())==0):
             self.labelNotFound.config(text="Nessun risultato trovato")
             self.labelNotFound.pack(fill="both", expand=True)
         else:
@@ -527,7 +522,7 @@ class Window(Tk):
             if numQuery == 4:
                 cols = ("Summer", "Winter")
             elif numQuery == 7:
-                cols = ("Team", "Medal counter")
+                cols = ("Team", "Position")
             elif numQuery == 9:
                 cols = ("Year", "Participation")
             else:
@@ -540,7 +535,6 @@ class Window(Tk):
             cols = tuple(cols)
             self.tree.config(col=cols, show="headings")
             for col in cols:
-                #if col != "Achievements" or (col == "Achievements" and numQuery == 2):
                 self.tree.heading(col, text=col)
                 minWidth = 0
                 if col == "Sex" or col == "Height" or col == "Weight" or col == "NOC" or col == "Age" or col == "Year" or col == "ID":

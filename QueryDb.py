@@ -1,7 +1,6 @@
 from matplotlib import pyplot as plt
 import numpy as np
 from matplotlib.figure import Figure
-
 from load_db import db
 
 
@@ -82,7 +81,7 @@ def query5(nomeEvento, annoEvento, cittàEvento, season): # -- Mostra tutte le m
             "localField": "IDEvent",
             "foreignField": "Achievements.IDEvent",
             "as": "lista"
-        }}, {"$limit": 5}
+        }}
     ])
 
     #Elimino le medaglie nulle
@@ -151,7 +150,7 @@ def query6(nazione):  # -- Elabora un grafico a torta degli sport in cui una dat
     return fig, 6
 
 
-def query7(nomeEvento, annoEvento, cittàEvento, stagioneEvento):  # -- Mostra il totale delle medaglie attinenti a un dato evento per ogni nazione
+def query7(nomeEvento, annoEvento, cittàEvento, stagioneEvento):  # -- Mostra le nazioni vincitrici di una data competizione
     result = db.event.aggregate([
         {"$match": {
             "EventName": nomeEvento,
@@ -166,16 +165,13 @@ def query7(nomeEvento, annoEvento, cittàEvento, stagioneEvento):  # -- Mostra i
             "as": "participation"
         }}
     ])
-
-    diz = {}  # per contenere Nazione - NumMedaglie
+    idEvent = db.event.find_one({"EventName":nomeEvento, "Year":annoEvento, "City":cittàEvento, "Season":stagioneEvento}, {"_id":0, "IDEvent":1})
+    diz = {}  # per contenere Nazione - TipoMedaglia
     for r in result:
         for item in r["participation"]:
-            if item["Achievements"][0]["Medal"] is not None:
-                team = item["Team"]
-                if team not in diz.keys():
-                    diz[team] = 1
-                else:
-                    diz[team] += 1
+            for achievement in item["Achievements"]:
+                if achievement["Medal"] is not None and achievement["IDEvent"] == idEvent["IDEvent"]:
+                    diz[item["Team"]] = achievement["Medal"]
     return diz, 7
 
 
@@ -210,7 +206,6 @@ def query8(annoInf, annoSup, tipoGrafico):  # -- Elabora un istogramma delle 5 n
                 for medal in item["Achievements"]:
                     if medal["Medal"] is not None:
                         resultMap[item["Team"]][3] += 1
-                        # print("Anno ", item["Year"])
                         if medal["Medal"] == "Gold":
                             resultMap[item["Team"]][0] += 1
                         elif medal["Medal"] == "Silver":
@@ -324,8 +319,7 @@ def ultimoAnno():
 
 def insertEvent(eventName, year, city, season):
     idEvent = findMaxIDEvent() + 1
-    db.event.insert_one(
-        {"EventName": eventName, "Year": year, "City": city, "Season": season, "IDEvent": "EV" + str(idEvent)})
+    db.event.insert_one({"EventName": eventName, "Year": year, "City": city, "Season": season, "IDEvent": "EV" + str(idEvent)})
 
 
 def findMaxIDEvent():
@@ -403,6 +397,7 @@ def insertAchievement(idAthlete, achievements):
 def deleteAchievement(idAthlete, idEvent):
     db.athlete.update({"ID": idAthlete, "Achievements.IDEvent": idEvent},
                       {"$pull": {"Achievements": {"IDEvent": idEvent}}})
+    # check se achievements dell'atleta è vuoto: in tal caso, cancellare a cascata l'atleta
 
 
 def updateAchievements(idAthlete, achievement):
