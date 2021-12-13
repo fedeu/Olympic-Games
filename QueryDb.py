@@ -35,7 +35,7 @@ def query3(team, year):  # -- Mostra le medaglie vinte da un team (nazione) in u
             if item["Team"] == team:
                 medaglia = item["Achievements"]
                 for med in medaglia:
-                    if med["Medal"] != None:
+                    if med["Medal"] is not None:
                         newMedaglia.append(med)
                 temp = item
                 temp["Achievements"] = newMedaglia
@@ -69,12 +69,14 @@ def query4(team, year):  # -- Calcola quante medaglie sono state vinte da una da
 
 
 def query5(nomeEvento, annoEvento, cittàEvento, season): # -- Mostra tutte le medaglie vinte in un dato evento e gli atleti che le hanno vinte;
+    idEvento = findIDEvent(nomeEvento, annoEvento, cittàEvento, season)
     result = db.event.aggregate([
         {"$match": {
             "EventName": nomeEvento,
             "Year": annoEvento,
             "City": cittàEvento,
-            "Season": season
+            "Season": season,
+            "IDEvent": idEvento["IDEvent"]
         }},
         {"$lookup": {
             "from": "athlete",
@@ -83,15 +85,14 @@ def query5(nomeEvento, annoEvento, cittàEvento, season): # -- Mostra tutte le m
             "as": "lista"
         }}
     ])
-
-    #Elimino le medaglie nulle
+    # Elimino le medaglie nulle
     finalResult = {}
     for r in result:
         for item in r["lista"]:
             newMedaglia = []
             medaglia = item["Achievements"]
             for med in medaglia:
-                if med["Medal"] is not None:
+                if med["IDEvent"] == idEvento["IDEvent"] and med["Medal"] is not None:
                     newMedaglia.append(med)
             temp = item
             temp["Achievements"] = newMedaglia
@@ -150,12 +151,12 @@ def query6(nazione):  # -- Elabora un grafico a torta degli sport in cui una dat
     return fig, 6
 
 
-def query7(nomeEvento, annoEvento, cittàEvento, stagioneEvento):  # -- Mostra le nazioni vincitrici di una data competizione
+def query7(nomeEvento, annoEvento, cittaEvento, stagioneEvento):  # -- Mostra le nazioni vincitrici di una data competizione
     result = db.event.aggregate([
         {"$match": {
             "EventName": nomeEvento,
             "Year": annoEvento,
-            "City": cittàEvento,
+            "City": cittaEvento,
             "Season": stagioneEvento
         }},
         {"$lookup": {
@@ -165,7 +166,7 @@ def query7(nomeEvento, annoEvento, cittàEvento, stagioneEvento):  # -- Mostra l
             "as": "participation"
         }}
     ])
-    idEvent = db.event.find_one({"EventName":nomeEvento, "Year":annoEvento, "City":cittàEvento, "Season":stagioneEvento}, {"_id":0, "IDEvent":1})
+    idEvent = db.event.find_one({"EventName":nomeEvento, "Year":annoEvento, "City":cittaEvento, "Season":stagioneEvento}, {"_id":0, "IDEvent":1})
     diz = {}  # per contenere Nazione - TipoMedaglia
     for r in result:
         for item in r["participation"]:
@@ -225,6 +226,7 @@ def query8(annoInf, annoSup, tipoGrafico):  # -- Elabora un istogramma delle 5 n
     elif tipoGrafico == "Total":
         z = "totali"
         y = 3
+
     if y == 4:
         print("il valore inserito non è corretto")
     else:
@@ -395,9 +397,11 @@ def insertAchievement(idAthlete, achievements):
 
 
 def deleteAchievement(idAthlete, idEvent):
-    db.athlete.update({"ID": idAthlete, "Achievements.IDEvent": idEvent},
-                      {"$pull": {"Achievements": {"IDEvent": idEvent}}})
-    # check se achievements dell'atleta è vuoto: in tal caso, cancellare a cascata l'atleta
+     db.athlete.update({"ID": idAthlete, "Achievements.IDEvent": idEvent},
+     {"$pull": {"Achievements": {"IDEvent": idEvent}}})
+     atleta = db.athlete.find_one({"ID": idAthlete}, {"_id": 0})
+     if not atleta["Achievements"]:
+        deleteAthlete(idAthlete)
 
 
 def updateAchievements(idAthlete, achievement):
