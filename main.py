@@ -36,7 +36,9 @@ class Window(Tk):
 
         # style for widgets: label error and label not found
         styleError = Style()
-        styleError.configure("BW.TLabel", foreground="red", background="#4D9D8B")
+        styleError.configure("Error.Message.TLabel", foreground="red", background="#fff")
+        correctStyle = Style()
+        correctStyle.configure("BW.TLabel", foreground="green", background="#fff")
 
         # Menubutton
         self.menu_button = Menubutton(self, text='Seleziona una query', width=100)
@@ -100,6 +102,8 @@ class Window(Tk):
             elif key == "Medal" and inputField != "Gold" and inputField != "Silver" and inputField != "Bronze" and inputField != "":
                 inputField = "!" # error message for wrong medal
             else:  # check on strings
+                if inputField is None:
+                    return None
                 special_characters = "\"!@#$%^&*()+?_=<>/\""
                 if any(c in special_characters for c in inputField):# check on special characters
                     inputField = None
@@ -120,6 +124,7 @@ class Window(Tk):
             self.tree.delete(item)
         self.tree.pack_forget()
         errorText = ""
+        update_op = ""
         val = int(self.selected_query.get())
         res = None
         numQuery = 0
@@ -171,10 +176,18 @@ class Window(Tk):
                 elif val == 6:
                     res, numQuery = query7(evento, anno, citta, season)
                 elif val == 13:
-                    insertEvent(evento, anno, citta, season)
+                    res = insertEvent(evento, anno, citta, season)
+                    if res is None:
+                        errorText = "Operazione fallita. Riprova."
+                    else:
+                        update_op = "Inserimento completato."
                 else:
                     if checkEvento(idEvento) is not None:
-                        upDateEvent(idEvento, evento, anno, citta, season)
+                        res = upDateEvent(idEvento, evento, anno, citta, season)
+                        if res is None:
+                            errorText = "Operazione fallita. Riprova."
+                        else:
+                            update_op = "Modifica completata."
                     else:
                         errorText = "Evento non trovato nel database"
         elif val == 5:
@@ -236,29 +249,37 @@ class Window(Tk):
             else:
                 atleta = {"ID": idAthlete, "Name": nome, "Sex": sesso, "Age": eta, "Height": altezza, "Weight": peso, "NOC": noc, "Team": team}
 
-            if val == 10:
-                medaglia = self.checkInput("Medal")
-                sport = self.checkInput("Sport")
-                idEvent = self.checkInput("IDEvent")
-                if sport is None:
-                    errorText = "Inserisci uno sport corretto"
-                elif idEvent is None:
-                    errorText = "Inserisci un id evento corretto - Deve iniziare per EV e contenere caratteri numerici"
-                elif medaglia == "!":
-                    errorText = "Inserisci una medaglia corretta - Gold/Silver/Bronze/null"
-                else:
-                    if medaglia == "":
-                        medaglia = None
-                    if checkEvento(idEvent) is None:
-                        errorText = "Inserisci un id evento corretto - ID non trovato nel db"
+                if val == 10:
+                    medaglia = self.checkInput("Medal")
+                    sport = self.checkInput("Sport")
+                    idEvent = self.checkInput("IDEvent")
+                    if sport is None:
+                        errorText = "Inserisci uno sport corretto"
+                    elif idEvent is None:
+                        errorText = "Inserisci un id evento corretto - Deve iniziare per EV e contenere caratteri numerici"
+                    elif medaglia == "!":
+                        errorText = "Inserisci una medaglia corretta - Gold/Silver/Bronze/null"
                     else:
-                        achievements = {"Medal": medaglia, "Sport": sport, "IDEvent": idEvent}
-                        insertAthlete(atleta, achievements)
-            elif val == 11:
-                if checkIdAthlete(idAthlete) is None:
-                    errorText = "Inserisci un id atleta corretto - ID non presente nel db"
-                else:
-                    upDateAthlete(idAthlete, nome, sesso, eta, altezza, peso, team, noc)
+                        if medaglia == "":
+                            medaglia = None
+                        if checkEvento(idEvent) is None:
+                            errorText = "Inserisci un id evento corretto - ID non trovato nel db"
+                        else:
+                            achievements = {"Medal": medaglia, "Sport": sport, "IDEvent": idEvent}
+                            res = insertAthlete(atleta, achievements)
+                            if res is None:
+                                errorText = "Operazione fallita. Riprova."
+                            else:
+                                update_op = "Inserimento completato."
+                elif val == 11:
+                    if checkIdAthlete(idAthlete) is None:
+                        errorText = "Inserisci un id atleta corretto - ID non presente nel db"
+                    else:
+                        res = upDateAthlete(idAthlete, nome, sesso, eta, altezza, peso, team, noc)
+                        if res is None:
+                            errorText = "Operazione fallita. Riprova."
+                        else:
+                            update_op = "Modifica completata."
         elif val == 12:
             idAthlete = self.checkInput("ID")
             if idAthlete is None:
@@ -266,9 +287,11 @@ class Window(Tk):
             elif checkIdAthlete(idAthlete) is None:
                 errorText = "Inserisci un ID corretto - ID non presente nel db"
             else:
-                deleteAthlete(idAthlete)
-        elif val == 14:
-            pass
+                res = deleteAthlete(idAthlete)
+                if res is None:
+                    errorText = "Operazione fallita. Riprova."
+                else:
+                    update_op = "Cancellazione completata."
         elif val == 15:
             idEvent = self.checkInput("IDEvent")
             if idEvent is None:
@@ -277,7 +300,11 @@ class Window(Tk):
                 if checkEvento(idEvent) is None:
                     errorText = "Inserisci un id evento corretto - L'evento non è presente sul db"
                 else:
-                    deleteEvent(idEvent)
+                    res = deleteEvent(idEvent)
+                    if res is None:
+                        errorText = "Operazione fallita. Riprova."
+                    else:
+                        update_op = "Cancellazione completata."
         elif val == 16 or val == 17:
             idAthlete = self.checkInput("ID")
             medaglia = self.checkInput("Medal")
@@ -297,9 +324,13 @@ class Window(Tk):
                     medaglia = None
                 achievement = {"Medal": medaglia, "Sport": sport, "IDEvent": idEvent}
                 if val == 16:
-                    insertAchievement(idAthlete, achievement)
+                    res = insertAchievement(idAthlete, achievement)
                 else:
-                    updateAchievements(idAthlete, achievement)
+                    res = updateAchievements(idAthlete, achievement)
+                if res is None:
+                    errorText = "Operazione fallita. Riprova."
+                else:
+                    update_op = "Aggiornamento completato."
             else:
                 errorText = "Inserisci un id evento corretto - ID non trovato"
         elif val == 18:
@@ -309,14 +340,20 @@ class Window(Tk):
                 errorText = "Inserisci un ID corretto - L'ID deve essere numerico"
             elif idEvent is None:
                 errorText = "Inserisci un id evento corretto - Deve iniziare per EV e contenere caratteri numerici"
-
-            if checkEvento(idEvent) is not None:
-                deleteAchievement(idAthlete, idEvent)
+            elif checkEvento(idEvent) is not None:
+                res = deleteAchievement(idAthlete, idEvent)
+                if res is None:
+                    errorText = "Operazione fallita. Riprova."
+                else:
+                    update_op = "Cancellazione completata."
             else:
                 errorText = "Inserisci un id evento corretto - Deve iniziare per EV e contenere caratteri numerici"
 
         if errorText != "":
-            self.labelError.config(text=errorText)
+            self.labelError.config(text=errorText, style="Error.Message.TLabel")
+            self.labelError.grid(row=3, column=0, padx=1, pady=4)
+        elif update_op != "":
+            self.labelError.config(text=update_op, style="BW.TLabel")
             self.labelError.grid(row=3, column=0, padx=1, pady=4)
         else:
             self.labelError.grid_remove()
