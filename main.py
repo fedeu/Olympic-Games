@@ -27,12 +27,12 @@ class Window(Tk):
         super().__init__()
         # Import the sun-valley.tcl file to use theme
         self.tk.call("source", "./Sun-Valley-ttk-theme-master/sun-valley.tcl")
-
         # Then set the theme you want with the set_theme procedure
         self.tk.call("set_theme", "dark")
         self.configure(background='#4D9D8B')
         self.geometry('1250x750')
         self.title('Olympic History')
+        self.iconbitmap("olympics.ico")
 
         # style for widgets: label error and label not found
         styleError = Style()
