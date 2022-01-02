@@ -85,14 +85,14 @@ class Window(Tk):
                 try:
                     inputField = int(inputField)
                 except:
-                    inputField = None
+                    return None
                 if key == "Quantità" and inputField < 1:
                     inputField = None
             elif key == "Peso" or key == "Altezza": # check on float
                 try:
                     inputField = float(inputField)
                 except:
-                    inputField = None
+                    return None
             elif key == "Stagione":
                 if inputField != "Winter" and inputField != "Summer":
                     inputField = None
@@ -119,12 +119,11 @@ class Window(Tk):
 
 
     def callQuery(self):
-        """Get value from menu and query the db"""
+        """Get value from the input form and query the db"""
         for item in self.tree.get_children():
             self.tree.delete(item)
         self.tree.pack_forget()
-        errorText = ""
-        update_op = ""
+        errorText = update_op = ""
         val = int(self.selected_query.get())
         res = None
         numQuery = 0
@@ -205,6 +204,8 @@ class Window(Tk):
                 errorText = "Inserisci un anno valido come primo parametro"
             elif anno2 is None:
                 errorText = "Inserisci un anno valido come secondo parametro"
+            elif int(anno1) > int(anno2):
+                errorText = "Anno1 deve essere inferiore ad Anno2"
             else:
                 res, numQuery = query8(anno1, anno2, medaglia)
         elif val == 8:
@@ -225,7 +226,6 @@ class Window(Tk):
             team = self.checkInput("Team")
             noc = self.checkInput("NOC")
             idAthlete = None
-#lo setto nullo a prescindere, così quando si tratta di una modifica me lo trovo nelle righe qui sotto, altrimenti se è un inserimento, comunque nella query quando va a inserire la entry non considera l'ID e non fa niente se è nullo
             if val == 11:
                 idAthlete = self.checkInput("ID")
                 if idAthlete is None:
@@ -248,7 +248,6 @@ class Window(Tk):
                 errorText = "Inserisci un NOC corretto - Il NOC deve essere di 3 caratteri"
             else:
                 atleta = {"ID": idAthlete, "Name": nome, "Sex": sesso, "Age": eta, "Height": altezza, "Weight": peso, "NOC": noc, "Team": team}
-
                 if val == 10:
                     medaglia = self.checkInput("Medal")
                     sport = self.checkInput("Sport")
@@ -460,9 +459,9 @@ class Window(Tk):
 
         label.grid(row=riga, column=0, padx=2, pady=2)
         entry.grid(row=riga, column=1, padx=2, pady=2)
-        entry.focus_set()
+        entry.focus_set() # gets the focus on the 1st entry in the form
         self.subtmitbtn.grid(row=2, column=0, pady=5)
-        self.bind('<Return>', lambda event: self.callQuery())
+        self.bind('<Return>', lambda event: self.callQuery()) # Press enter key to execute query
 
     def hideFields(self):
         """Hide already created fields to place the new ones"""
@@ -547,14 +546,14 @@ class Window(Tk):
         """Arrange widgets in the output area"""
         self.labelNotFound.pack_forget()
         self.outputFrame.grid(row=4, columnspan=4, padx=10, pady=10, sticky=E+W+N+S)
-        if numQuery == 6 or numQuery == 8:
-            self.displayPlot(results)
-            return
         # Check on length of results: if 0 show label for no result
         if (type(results) is list and len(results) == 0) or (type(results) is pymongo.cursor.Cursor and results.count() == 0) or (type(results) is dict and len(results.keys())==0):
             self.labelNotFound.config(text="Nessun risultato trovato")
             self.labelNotFound.pack(fill="both", expand=True)
         else:
+            if numQuery == 6 or numQuery == 8:
+                self.displayPlot(results)
+                return
             # Setting columns for the result table
             if numQuery == 4:
                 cols = ("Summer", "Winter")
@@ -586,6 +585,7 @@ class Window(Tk):
                 else:
                     width = 150
                 self.tree.column(col, minwidth=minWidth, width=width)
+
             # Setting the treeview to display results
             if numQuery == 4:
                 self.tree.insert("", "end", values=(results[0], results[1]))
@@ -601,7 +601,7 @@ class Window(Tk):
                     myValues = []
                     for col in cols:
                         if col != "Achievements":
-                            if col == "Age" and result[col] is not None: # convert age from float to int. some athletes have age null
+                            if col == "Age" and result[col] is not None: # convert age from float to int. some athletes have age = null
                                 result[col] = int(result[col])
                             myValues.append(result[col])
                         elif col == "Achievements":
@@ -609,8 +609,7 @@ class Window(Tk):
                                 allMedals.append(medal["Medal"]+", "+medal["Sport"])
                             myValues.append(allMedals)
                     self.tree.insert("", "end", values=tuple(myValues))
-            # Show results
-            self.tree.pack(fill="both", expand=True)
+            self.tree.pack(fill="both", expand=True) # Show results
 
 
     def create_menu_button(self):

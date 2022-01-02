@@ -4,7 +4,7 @@ from matplotlib.figure import Figure
 from load_db import db
 
 
-def query1(city): # --- QUERY 1: Presa in input una città, mostrare gli eventi che ha ospitato
+def query1(city): # --- Presa in input una città, mostrare gli eventi che ha ospitato
     queryResult = db.event.find({"City": city}, {"_id": 0, "IDEvent": 0, "City": 0})
     return queryResult, 1
 
@@ -65,11 +65,15 @@ def query4(team, year):  # -- Calcola quante medaglie sono state vinte da una da
         for queryRes in queries:
             counter += queryRes.count()
         medals.append(counter)
+    if medals[0] == medals[1] == 0:
+        return [], 4
     return [medals[0], medals[1]], 4
 
 
 def query5(nomeEvento, annoEvento, cittàEvento, season): # -- Mostra tutte le medaglie vinte in un dato evento e gli atleti che le hanno vinte;
     idEvento = findIDEvent(nomeEvento, annoEvento, cittàEvento, season)
+    if idEvento is None:
+        return [], 5
     result = db.event.aggregate([
         {"$match": {
             "EventName": nomeEvento,
@@ -118,6 +122,8 @@ def query6(nazione):  # -- Elabora un grafico a torta degli sport in cui una dat
             else:
                 resultMap[achievement['Sport']] += 1  # Incrementa il conteggio delle medaglie per un dato sport
 
+    if len(resultMap) == 0:
+        return resultMap, 6
     # GRAFICO A TORTA
     sports = list(resultMap.keys())[:10]
     medals = list(resultMap.values())[:10]
@@ -213,6 +219,8 @@ def query8(annoInf, annoSup, tipoGrafico):  # -- Elabora un istogramma delle 5 n
                             resultMap[item["Team"]][1] += 1
                         elif medal["Medal"] == "Bronze":
                             resultMap[item["Team"]][2] += 1
+    if len(resultMap) == 0:
+        return [], 8
     y = 4
     if tipoGrafico == "Gold":
         y = 0
@@ -413,3 +421,6 @@ def updateAchievements(idAthlete, achievement):
                 "Achievements.$.IDEvent": achievement["IDEvent"]
             }
         })
+
+def findIDEvent(nomeEvento, annoEvento, cittàEvento, season):
+    return db.event.find_one({"EventName": nomeEvento, "Year": annoEvento, "City": cittàEvento, "Season": season}, { "IDEvent": 1, "_id":0})
