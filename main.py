@@ -362,6 +362,10 @@ class Window(Tk):
 
     def displayPlot(self, fig):
         """Used by query 6 and 8 to display histogram and pie chart"""
+        if self.canvas is not None:
+            for item in self.canvas.get_tk_widget().find_all():
+                self.canvas.get_tk_widget().delete(item)
+            self.canvas.get_tk_widget().destroy()
         self.canvas = FigureCanvasTkAgg(fig, master=self.outputFrame)
         self.canvas.draw()
         self.canvas.get_tk_widget().pack(fill="both", expand=True)
