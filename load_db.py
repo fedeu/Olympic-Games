@@ -33,8 +33,7 @@ def inizializzaDB():
     dfEvent.to_csv(rootPath + "event_info.csv", index=False)  # Converti dataframe in csv
     index = 0
     diz = {}
-    with open(rootPath + "event_info.csv",
-              'r') as readfile:  # Scorre il file e crea un id per l'evento, inserendolo in un dizionario
+    with open(rootPath + "event_info.csv",'r') as readfile:  # Scorre il file e crea un id per l'evento, inserendolo in un dizionario
         reader = csv.reader(readfile)
         for row in reader:
             if row[0] == 'Event':  # Salta la prima riga che contiene i nomi degli attributi
@@ -125,9 +124,6 @@ def creaIndici():
     db.athlete.create_index([("Age", 1)])
     db.athlete.create_index([("Sex", 1)])
     db.athlete.create_index([("Name", 1)])
-    db.athlete.create_index([("Height", 1)])
-    db.athlete.create_index([("Weight", 1)])
-    db.athlete.create_index([("NOC", 1)])
 
     # Indici per Achievement
     db.achievement.create_index([("IDAthlete", 1)])
@@ -140,7 +136,6 @@ def creaIndici():
     db.event.create_index([("EventName", 1)])
     db.event.create_index([("Year", 1)])
     db.event.create_index([("City", 1)])
-    db.event.create_index([("Season", 1)])
     db.event.create_index([("IDEvent", 1)])
 
 
