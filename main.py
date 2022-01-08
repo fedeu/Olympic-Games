@@ -407,8 +407,8 @@ class Window(Tk):
         # MEDAL
         labelMedal = Label(self.inputFrame, text="Medaglia")
         labelSport = Label(self.inputFrame, text="Sport")
-        labelAnno1 = Label(self.inputFrame, text="Anno1")
-        labelAnno2 = Label(self.inputFrame, text="Anno2")
+        labelAnno1 = Label(self.inputFrame, text="Dal")
+        labelAnno2 = Label(self.inputFrame, text="Al")
         labelQuantity = Label(self.inputFrame, text="Quantità")
         labelTypeMedal = Label(self.inputFrame, text="Tipo medaglia")
 
